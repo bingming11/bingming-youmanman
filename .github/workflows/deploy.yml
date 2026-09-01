@@ -1,0 +1,54 @@
+name: 部署报价网站到 GitHub Pages
+
+# 触发：push 到 main/master 即自动构建并发布（报价一更新，push 后自动上线）
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:   # 也可在 Actions 页面手动「Run workflow」立即发布
+
+# 必须的最小权限（GitHub Pages 用 OIDC，无需额外 Secret）
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装解析依赖
+        run: pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+      - name: 合并乐享 + Excel 报价 → 生成 data/data.js
+        run: python sync_from_lexiang.py --excel-dir quotes --md-dir _lx_pages --out-dir data
+
+      - name: 配置 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传站点产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

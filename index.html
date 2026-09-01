@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>邮满满云仓 · 报价查询中心</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-in">
+    <div class="topline">
+      <div class="brand">
+        <svg width="46" height="34" viewBox="0 0 46 34" fill="none" aria-hidden="true">
+          <path d="M13.6 30.5C7.2 30.5 2 25.6 2 19.6c0-5.5 4.3-10.1 9.9-10.8C13.4 4.4 17.9 1 23.2 1c6.3 0 11.5 4.7 12.1 10.7 4.9.5 8.7 4.5 8.7 9.4 0 5.2-4.4 9.4-9.8 9.4H13.6z"
+                stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M12.5 15.5h9.2l-4.6 8-4.6-8z" fill="#FAAD39"/>
+          <path d="M25.5 13.5h9M30 13.5v13" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <div class="brand-t"><b>邮满满 Yumanman</b><span>跨境集运 · 云仓代发</span></div>
+      </div>
+      <div class="ver">
+        <span class="ver-chip">版本 <b id="ver-v">v0</b></span>
+        <span class="ver-chip" id="ver-d">—</span>
+        <button class="btn-refresh" id="btn-refresh" title="重新扫描数据源并刷新">↻ 刷新数据</button>
+      </div>
+    </div>
+
+    <div class="hero-main">
+      <div>
+        <h1>邮满满云仓报价<br><em>一站式</em>查询中心</h1>
+        <p class="hero-sub">集运线路、云仓服务与参考规则集中展示。支持按线路 / 仓库 / 服务类型分类，关键词搜索、条件筛选与排序，金额与单位统一格式化。</p>
+        <div class="hero-meta">
+          <span class="chip">更新于 <b id="ver-d2">—</b></span>
+          <span class="chip">币种 <b>CNY ¥</b></span>
+          <span class="chip">数据源 <b>邮满满云仓报价表</b></span>
+        </div>
+      </div>
+      <div class="statgrid">
+        <div class="stat"><div class="n" id="st-route">—</div><div class="l">线路报价表</div></div>
+        <div class="stat"><div class="n" id="st-ware">—</div><div class="l">云仓服务表</div></div>
+        <div class="stat"><div class="n" id="st-ref">—</div><div class="l">参考规则表</div></div>
+        <div class="stat"><div class="n" id="st-rows">—</div><div class="l">报价条目总数</div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="navbar" id="navbar">
+  <div class="tabrow" role="tablist" id="tabrow"></div>
+  <div class="wrap">
+    <div class="tools">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
+        <input id="q" type="search" placeholder="搜索：美国、普货、挂号费、0.1、分区…" autocomplete="off">
+      </div>
+      <button class="btn-calc" id="btn-calc" title="根据线路报价实时估算运费">🧮 运费试算</button>
+      <button class="btn-clear" id="clear">清除</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="banner hidden" id="banner"></div>
+  <div class="pills hidden" id="pills"></div>
+  <main id="sheet-area"></main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>邮满满云仓报价查询中心 · 数据来自 <b>邮满满云仓报价表</b> 文件夹，新增 / 替换报价表后重新运行解析脚本即可同步。</div>
+    <div>© 邮满满国际物流（深圳）有限公司</div>
+  </div>
+</footer>
+
+<!-- 运费试算 弹窗 -->
+<div class="calc-modal hidden" id="calc-modal" aria-hidden="true">
+  <div class="calc-backdrop" id="calc-backdrop"></div>
+  <div class="calc-panel" role="dialog" aria-modal="true" aria-label="运费试算">
+    <div class="calc-head">
+      <h3>🧮 运费试算</h3>
+      <button class="calc-x" id="calc-x" aria-label="关闭">×</button>
+    </div>
+    <div class="calc-body">
+      <div class="calc-field">
+        <label for="calc-channel">渠道 / 线路</label>
+        <select id="calc-channel"></select>
+      </div>
+      <div class="calc-field">
+        <label for="calc-dest">目的地 / 产品</label>
+        <select id="calc-dest"></select>
+      </div>
+      <div class="calc-grid2">
+        <div class="calc-field">
+          <label for="calc-w">重量 (KG) <span class="req">*</span></label>
+          <input id="calc-w" type="number" min="0" step="0.01" inputmode="decimal" placeholder="如 0.5">
+        </div>
+        <div class="calc-field">
+          <label for="calc-l">长 (cm)</label>
+          <input id="calc-l" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
+        </div>
+      </div>
+      <div class="calc-grid2">
+        <div class="calc-field">
+          <label for="calc-wi">宽 (cm)</label>
+          <input id="calc-wi" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
+        </div>
+        <div class="calc-field">
+          <label for="calc-h">高 (cm)</label>
+          <input id="calc-h" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
+        </div>
+      </div>
+      <button class="btn-calc-go" id="calc-go">计算预估运费</button>
+      <p class="calc-note">体积重 = 长×宽×高 ÷ 6000；计费重 = max(实重, 体积重)，并按线路最低计费重封底。结果随报价表更新，仅供参考。</p>
+      <div class="calc-result hidden" id="calc-result" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<script src="data/data.js"></script>
+<script src="data/status.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/calc.js"></script>
+</body>
+</html>

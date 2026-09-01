@@ -1,0 +1,19 @@
+# 邮满满云仓报价网站 · 容器编排
+# 用法：
+#   1) 把最新报价表放到本目录下的 ./quotes 文件夹
+#   2) docker compose up -d
+#   3) 浏览器访问 http://<服务器IP>:8080
+services:
+  quote:
+    build: .
+    image: yumanman-quote:latest
+    container_name: yumanman-quote
+    ports:
+      - "8080:8765"
+    environment:
+      - QUOTE_PORT=8765
+      - QUOTE_DATA_DIR=/data/quotes
+    volumes:
+      # 把宿主机报价表目录挂进容器，放入新文件后点页面「刷新数据」即可重解析
+      - ./quotes:/data/quotes
+    restart: unless-stopped
