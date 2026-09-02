@@ -29,7 +29,7 @@ jobs:
           python-version: "3.11"
 
       - name: 安装解析依赖
-        run: pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+        run: pip install -r requirements.txt
 
       - name: 合并乐享 + Excel 报价 → 生成 data/data.js
         run: python sync_from_lexiang.py --excel-dir quotes --md-dir _lx_pages --out-dir data
