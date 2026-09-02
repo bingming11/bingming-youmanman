@@ -1,4 +1,4 @@
-/* 邮满满云仓报价展示网站 —— 前端逻辑
+/* 邮满满云仓报价展示网站 —— 前端逻辑（含三语 i18n + 货币实时换算）
  * 数据来自 window.YUNMANMAN_DATA (data/data.js) 与 window.YUNMANMAN_STATUS (data/status.js)。
  * 兼容 file:// 直接打开（数据以 <script> 全局变量注入，无需 fetch）。
  */
@@ -8,22 +8,96 @@
   var DATA = window.YUNMANMAN_DATA || { version: 0, sheets: [], sheetCount: 0, totalRows: 0, updatedAt: "" };
   var STATUS = window.YUNMANMAN_STATUS || { ok: true, version: DATA.version, updatedAt: DATA.updatedAt };
 
+  // ===================== 三语 i18n =====================
+  var LANG = (function () {
+    try { var v = localStorage.getItem("ym_lang"); if (v) return v; } catch (e) {}
+    return "zh";
+  })();
+  if (LANG !== "zh" && LANG !== "en" && LANG !== "ko") LANG = "zh";
+
+  function T(k) {
+    var z = (window.I18N && window.I18N.zh) || {};
+    var d = (window.I18N && window.I18N[LANG]) || {};
+    var v = d[k];
+    if (v == null) v = z[k];
+    return v == null ? k : v;
+  }
+  function applyStaticI18n() {
+    var nodes = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < nodes.length; i++) {
+      var eln = nodes[i], key = eln.getAttribute("data-i18n");
+      var txt = T(key), mode = eln.getAttribute("data-i18n-mode");
+      if (mode === "placeholder") eln.setAttribute("placeholder", txt);
+      else if (mode === "title") eln.setAttribute("title", txt);
+      else if (mode === "html") eln.innerHTML = txt;
+      else eln.textContent = txt;
+    }
+    document.title = T("site.title");
+    document.documentElement.lang = (LANG === "zh" ? "zh-CN" : LANG);
+    document.body.setAttribute("data-lang", LANG);
+  }
+  function setLang(lang) {
+    if (lang !== "zh" && lang !== "en" && lang !== "ko") lang = "zh";
+    LANG = lang;
+    try { localStorage.setItem("ym_lang", lang); } catch (e) {}
+    applyStaticI18n();
+    var lb = document.getElementById("langbar");
+    if (lb) {
+      var bs = lb.querySelectorAll("button");
+      for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("active", bs[i].getAttribute("data-lang") === lang);
+    }
+    renderHero(); renderTabs(); renderPills(); renderSheet();
+    try { window.dispatchEvent(new CustomEvent("ym:langchange")); } catch (e) {}
+  }
+
+  // ===================== 货币 =====================
+  var CUR = (function () {
+    try { var v = localStorage.getItem("ym_cur"); if (v) return v; } catch (e) {}
+    return "CNY";
+  })();
+  function money(nCny, code) {
+    code = code || CUR;
+    var val = (code === "CNY") ? nCny : (window.FX ? window.FX.convert(nCny, code) : nCny);
+    var sym = (code === "CNY") ? "¥" : (window.FX ? window.FX.sym(code) : "");
+    return (sym ? sym + " " : "") + fmtNum(val);
+  }
+  function setCurrency(code) {
+    CUR = code;
+    try { localStorage.setItem("ym_cur", code); } catch (e) {}
+    updateCurChip();
+    renderSheet();
+    try { window.dispatchEvent(new CustomEvent("ym:currencychange")); } catch (e) {}
+  }
+  function updateCurChip() {
+    var c = document.getElementById("cur-chip");
+    if (!c) return;
+    c.textContent = (CUR === "CNY") ? "CNY ¥" : ((window.FX ? window.FX.sym(CUR) : "") + " " + CUR);
+  }
+
+  // ===================== 国家名 / 备注列 =====================
+  var COUNTRY_COLS = ["国家/地区", "国家"];
+  function isCountryCol(h) { return COUNTRY_COLS.indexOf(h) >= 0; }
+  function countryText(v) {
+    if (window.COUNTRY_MAP && window.COUNTRY_MAP[v] && window.COUNTRY_MAP[v][LANG]) return window.COUNTRY_MAP[v][LANG];
+    return v;
+  }
+  var NOTE_KW = ["备注", "说明", "内容", "品目", "类目"];
+  function isNoteHeader(h) {
+    if (!h) return false;
+    for (var i = 0; i < NOTE_KW.length; i++) if (h.indexOf(NOTE_KW[i]) >= 0) return true;
+    return false;
+  }
+
+  // ===================== 现有工具 =====================
   var CURRENCY_KW = ["RMB", "元", "价格", "运费", "挂号", "服务费", "附加费",
     "处理费", "单价", "金额", "成本", "保价"];
-  var FEE_KW = ["费"];          // 辅助判断，但需排除重量列
   var WEIGHT_KW = ["KG", "kg", "重量", "计费重", "克", "g/"];
   var CAT_ORDER = ["线路报价", "云仓服务", "参考规则"];
 
-  // ---------- 状态 ----------
   var state = {
-    cat: "全部",
-    sheet: null,
-    q: "",
-    filters: {},   // {colIndex: value}
-    sort: null     // {col, dir: 'asc'|'desc'}
+    cat: "全部", sheet: null, q: "", filters: {}, sort: null
   };
 
-  // ---------- 工具 ----------
   function $(s, r) { return (r || document).querySelector(s); }
   function el(tag, cls, txt) {
     var e = document.createElement(tag);
@@ -37,9 +111,7 @@
   }
   function isCurrencyHeader(h) {
     if (!h) return false;
-    // 有明确货币单位 RMB / 元 / 价格 / 运费 / 挂号 / 服务费 / 附加费 / 处理费 / 单价 / 金额 / 成本 / 保价
     for (var i = 0; i < CURRENCY_KW.length; i++) if (h.indexOf(CURRENCY_KW[i]) >= 0) return true;
-    // 含“费”字时：先排除重量列（KG/计费重等），再排除标签类列（收费项目/计费依据等）
     if (h.indexOf("费") >= 0) {
       for (var k = 0; k < WEIGHT_KW.length; k++) if (h.indexOf(WEIGHT_KW[k]) >= 0) return false;
       var LABEL_KW = ["项目", "依据", "类别", "类型", "品类", "标准", "说明", "备注", "清单", "范围", "名称"];
@@ -63,7 +135,6 @@
     DATA.sheets.forEach(function (s) { present[s.category] = true; });
     var cats = ["全部"];
     CAT_ORDER.forEach(function (c) { if (present[c]) cats.push(c); });
-    // 兜底：出现未预期分类也展示
     DATA.sheets.forEach(function (s) { if (cats.indexOf(s.category) < 0) cats.push(s.category); });
     return cats;
   }
@@ -71,7 +142,7 @@
     return DATA.sheets.filter(function (s) { return cat === "全部" || s.category === cat; });
   }
 
-  // ---------- HERO / 状态 ----------
+  // ===================== HERO =====================
   function renderHero() {
     var counts = { "线路报价": 0, "云仓服务": 0, "参考规则": 0 };
     DATA.sheets.forEach(function (s) { if (counts[s.category] != null) counts[s.category]++; });
@@ -83,43 +154,32 @@
     $("#ver-d").textContent = STATUS.updatedAt || DATA.updatedAt || "—";
     $("#ver-d2").textContent = STATUS.updatedAt || DATA.updatedAt || "—";
 
-    // 服务状态横幅
     var b = $("#banner");
     b.innerHTML = "";
     if (STATUS.ok === false) {
       b.className = "banner err";
       b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>' +
-        '<div><b>解析失败，已回退至上一版本。</b> ' + esc(STATUS.error || "未知错误") +
-        (STATUS.fallbackVersion ? "（当前展示 v" + STATUS.fallbackVersion + "）" : "") +
-        '。请检查数据源文件后重新运行解析脚本。</div>';
+        '<div><b>' + esc(T("banner.err")) + '</b> ' + esc(STATUS.error || "") +
+        (STATUS.fallbackVersion ? "（" + T("tag.rows") + " v" + STATUS.fallbackVersion + "）" : "") +
+        '。</div>';
     } else if (STATUS.errors && STATUS.errors.length) {
       b.className = "banner warn";
       var names = STATUS.errors.map(function (e) { return e.file + (e.sheet ? " › " + e.sheet : ""); }).join("、");
       b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>' +
-        '<div><b>部分工作表解析存在异常，已跳过：</b>' + esc(names) + '。其余报价表正常展示。</div>';
+        '<div><b>' + esc(T("banner.warn")) + '</b>' + esc(names) + '。</div>';
     } else {
       b.className = "banner hidden";
     }
-
-    // 刷新按钮可用性
-    var btn = $("#btn-refresh");
-    var served = location.protocol.indexOf("http") === 0;
-    if (served) {
-      btn.disabled = false;
-      btn.title = "刷新报价数据：数据由乐享自动同步，点击重新加载最新版本";
-    } else {
-      btn.disabled = true;
-      btn.title = "当前为离线模式（file://），请通过在线网址访问方可刷新";
-    }
+    updateCurChip();
   }
 
-  // ---------- TABS ----------
+  // ===================== TABS =====================
   function renderTabs() {
     var row = $("#tabrow");
     row.innerHTML = "";
     categories().forEach(function (cat) {
       var n = sheetsInCat(cat).length;
-      var t = el("button", "tab", cat);
+      var t = el("button", "tab", T("cat." + cat));
       t.setAttribute("role", "tab");
       t.setAttribute("aria-selected", cat === state.cat ? "true" : "false");
       if (n) { t.classList.add("has-hits"); var h = el("span", "hits", n); t.appendChild(h); }
@@ -134,7 +194,7 @@
     });
   }
 
-  // ---------- SHEET PILLS ----------
+  // ===================== SHEET PILLS =====================
   function renderPills() {
     var box = $("#pills");
     box.innerHTML = "";
@@ -155,14 +215,13 @@
     });
   }
 
-  // ---------- 当前表的可筛选列 ----------
+  // ===================== 当前表 =====================
   function activeSheet() {
     return DATA.sheets.filter(function (s) { return s.name === state.sheet; })[0] || null;
   }
   function colRole(sheet, ci) {
     var h = sheet.headers[ci];
     if (isCurrencyHeader(h)) return "cur";
-    // 数值列判定：多数非空值可解析为数字
     var num = 0, tot = 0;
     sheet.rows.forEach(function (r) {
       var v = r[ci];
@@ -181,7 +240,6 @@
       sheet.rows.forEach(function (r) { var v = (r[ci] || "").trim(); if (v) set[v] = 1; });
       var vals = Object.keys(set);
       if (vals.length >= 2 && vals.length <= 40) {
-        // 至少有一个非纯数字值才算分类列
         var hasText = vals.some(function (v) { return toNum(v) == null; });
         if (hasText) out.push({ ci: ci, header: h, vals: vals });
       }
@@ -189,7 +247,7 @@
     return out;
   }
 
-  // ---------- 过滤 + 排序后的行 ----------
+  // ===================== 过滤 + 排序 =====================
   function visibleRows(sheet) {
     var q = state.q.trim().toLowerCase();
     var rows = sheet.rows.filter(function (r) {
@@ -228,27 +286,23 @@
     if (!q) return esc(text);
     var lower = text.toLowerCase(), qi = lower.indexOf(q.toLowerCase());
     if (qi < 0) return esc(text);
-    // 仅高亮首个匹配，避免长文本过度标记
     return esc(text.slice(0, qi)) + "<mark>" + esc(text.slice(qi, qi + q.length)) + "</mark>" + esc(text.slice(qi + q.length));
   }
 
-  // ---------- 渲染表格 ----------
+  // ===================== 渲染表格 =====================
   function renderTable(sheet) {
     var wrap = el("div", "card");
-
-    // 标题 + 元信息
     var head = el("div", "sec-head");
     head.appendChild(el("h2", null, sheet.name));
     var meta = el("div", "meta");
-    if (sheet.meta && sheet.meta.productCode) meta.appendChild(el("span", "tag a", "产品代码 " + sheet.meta.productCode));
-    if (sheet.meta && sheet.meta.effectiveDate) meta.appendChild(el("span", "tag", "生效 " + sheet.meta.effectiveDate));
-    meta.appendChild(el("span", "tag g", (sheet.rowCount || 0) + " 条"));
-    if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? "乐享·Excel" : "乐享·文档"));
-    if (sheet.sourceFile) meta.appendChild(el("span", "tag", "来源 " + sheet.sourceFile));
+    if (sheet.meta && sheet.meta.productCode) meta.appendChild(el("span", "tag a", T("tag.product") + " " + sheet.meta.productCode));
+    if (sheet.meta && sheet.meta.effectiveDate) meta.appendChild(el("span", "tag", T("tag.effective") + " " + sheet.meta.effectiveDate));
+    meta.appendChild(el("span", "tag g", (sheet.rowCount || 0) + " " + T("tag.rows")));
+    if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? T("tag.lexiangExcel") : T("tag.lexiangDoc")));
+    if (sheet.sourceFile) meta.appendChild(el("span", "tag", T("tag.source") + " " + sheet.sourceFile));
     head.appendChild(meta);
     wrap.appendChild(head);
 
-    // 筛选下拉
     var fcols = filterableCols(sheet);
     if (fcols.length) {
       var filt = el("div", "filt");
@@ -256,7 +310,7 @@
         var shortH = f.header.replace(/\s*\(.*\)/, "");
         var lab = el("label", null, shortH);
         var sel = el("select");
-        sel.appendChild(new Option("全部 · " + shortH, ""));
+        sel.appendChild(new Option(T("cat.all") === "全部" ? "全部 · " + shortH : "All · " + shortH, ""));
         f.vals.slice().sort(function (a, b) { return a.localeCompare(b, "zh"); }).forEach(function (v) {
           sel.appendChild(new Option(v, v));
         });
@@ -270,14 +324,9 @@
       wrap.appendChild(filt);
     }
 
-    // 过滤 + 排序后的行
     var rows = visibleRows(sheet);
-
     if (!rows.length) {
-      var em = el("div", "empty", "没有匹配" +
-        (state.q ? "「" + state.q + "」" : "") +
-        "的报价条目，试试更换关键词或清除筛选条件。");
-      wrap.appendChild(em);
+      wrap.appendChild(el("div", "empty", T("empty.nomatch").replace("…", state.q ? "「" + state.q + "」" : "…")));
       return wrap;
     }
 
@@ -291,11 +340,11 @@
       if (role !== "text") th.classList.add("num");
       var ar = "";
       if (state.sort && state.sort.col === ci) ar = state.sort.dir === "asc" ? "▲" : "▼";
-      th.innerHTML = esc(h || "—") + '<span class="ar">' + ar + "</span>";
+      var hint = (role === "cur" && CUR !== "CNY") ? ' <span class="conv">≈' + CUR + "</span>" : "";
+      th.innerHTML = esc(h || "—") + hint + '<span class="ar">' + ar + "</span>";
       th.addEventListener("click", function () {
-        if (state.sort && state.sort.col === ci) {
-          state.sort.dir = state.sort.dir === "asc" ? "desc" : "asc";
-        } else { state.sort = { col: ci, dir: "asc" }; }
+        if (state.sort && state.sort.col === ci) state.sort.dir = state.sort.dir === "asc" ? "desc" : "asc";
+        else state.sort = { col: ci, dir: "asc" };
         renderSheet();
       });
       trh.appendChild(th);
@@ -312,13 +361,15 @@
         if (role === "cur") {
           td.className = "cur";
           var n = toNum(v);
-          td.innerHTML = n != null ? "¥" + fmtNum(n) : highlight(v);
+          td.innerHTML = n != null ? money(n) : highlight(v);
         } else if (role === "num") {
           td.className = "num";
           var nn = toNum(v);
           td.innerHTML = nn != null ? fmtNum(nn) : highlight(v);
         } else {
-          td.innerHTML = highlight(v);
+          var disp = isCountryCol(h) ? countryText(v) : v;
+          td.innerHTML = highlight(disp);
+          if (isNoteHeader(h)) td.classList.add("td-note");
         }
         tr.appendChild(td);
       });
@@ -326,24 +377,20 @@
     });
     table.appendChild(tb); tw.appendChild(table); wrap.appendChild(tw);
 
-    // 行数提示
     if (rows.length !== sheet.rowCount) {
-      var note = el("div", "empty",
-        "显示 " + rows.length + " / 共 " + sheet.rowCount + " 条" +
-        (state.q || Object.keys(state.filters).length ? "（已应用搜索 / 筛选）" : ""));
-      wrap.appendChild(note);
+      wrap.appendChild(el("div", "empty", T("note.filtered").replace("{a}", rows.length).replace("{b}", sheet.rowCount)));
     }
     return wrap;
   }
 
-  // ---------- 渲染文本 ----------
+  // ===================== 渲染文本 =====================
   function renderText(sheet) {
     var wrap = el("div", "card");
     var head = el("div", "sec-head");
     head.appendChild(el("h2", null, sheet.name));
     var meta = el("div", "meta");
-    if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? "乐享·Excel" : "乐享·文档"));
-    if (sheet.sourceFile) meta.appendChild(el("span", "tag", "来源 " + sheet.sourceFile));
+    if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? T("tag.lexiangExcel") : T("tag.lexiangDoc")));
+    if (sheet.sourceFile) meta.appendChild(el("span", "tag", T("tag.source") + " " + sheet.sourceFile));
     head.appendChild(meta);
     wrap.appendChild(head);
     (sheet.blocks || []).forEach(function (blk) {
@@ -353,54 +400,63 @@
     return wrap;
   }
 
-  // ---------- 渲染当前 sheet ----------
+  // ===================== 渲染当前 sheet =====================
   function renderSheet() {
     var main = $("#sheet-area");
     main.innerHTML = "";
     var s = activeSheet();
-    if (!s) { main.appendChild(el("div", "empty", "该分类下暂无可展示的报价表。")); return; }
+    if (!s) { main.appendChild(el("div", "empty", T("empty.cat"))); return; }
     if (s.type === "text") main.appendChild(renderText(s));
     else main.appendChild(renderTable(s));
   }
 
-  // ---------- 绑定工具栏 ----------
+  // ===================== 工具栏绑定 =====================
+  function populateCurrency() {
+    var sel = document.getElementById("cur-sel");
+    if (!sel) return;
+    sel.innerHTML = "";
+    var list = (window.FX && window.FX.list) || ["CNY"];
+    list.forEach(function (code) {
+      var o = document.createElement("option");
+      o.value = code;
+      var sym = window.FX ? window.FX.sym(code) : "";
+      var nm = window.FX ? window.FX.name(code, LANG) : code;
+      o.textContent = (sym ? sym + " " : "") + code + " · " + nm;
+      sel.appendChild(o);
+    });
+    sel.value = CUR;
+    sel.addEventListener("change", function () { setCurrency(sel.value); });
+  }
+
   function bindTools() {
     var q = $("#q");
     q.addEventListener("input", function () { state.q = q.value; renderSheet(); });
     $("#clear").addEventListener("click", function () {
       state.q = ""; q.value = ""; state.filters = {}; renderSheet();
     });
-    // 滚动时给 navbar 加阴影
     var nav = $("#navbar");
     window.addEventListener("scroll", function () {
       if (window.scrollY > 8) nav.classList.add("stuck"); else nav.classList.remove("stuck");
     });
-    // 刷新
     $("#btn-refresh").addEventListener("click", function () {
       var btn = this;
       if (btn.disabled) return;
       btn.classList.add("busy"); btn.disabled = true;
-      btn.textContent = "刷新中…";
-      fetch("/refresh", { method: "POST" })
-        .then(function (r) {
-          if (!r.ok) throw new Error("no-backend");
-          return r.json();
-        })
-        .then(function (j) {
-          if (j.ok) { location.reload(true); }
-          else { throw new Error(j.error || "fail"); }
-        })
-        .catch(function () {
-          // 静态托管场景：无 /refresh 后端。重新加载页面以拉取已发布的最新 data.js
-          // （数据由乐享每小时自动同步；若刚更新过，重新发布后此刷新即可见最新）
-          var u = new URL(window.location.href);
-          u.searchParams.set("_r", Date.now());
-          window.location.href = u.toString();
-        });
+      btn.textContent = T("btn.refreshing");
+      var u = new URL(window.location.href);
+      u.searchParams.set("_r", Date.now());
+      window.location.href = u.toString();
     });
+    // 语言栏
+    var lb = document.getElementById("langbar");
+    if (lb) {
+      lb.querySelectorAll("button").forEach(function (b) {
+        b.addEventListener("click", function () { setLang(b.getAttribute("data-lang")); });
+      });
+    }
   }
 
-  // ---------- URL 状态同步 ----------
+  // ===================== URL 状态 =====================
   function readUrl() {
     var p = new URLSearchParams(location.search);
     var qc = p.get("cat"), qs = p.get("sheet"), qq = p.get("q");
@@ -410,16 +466,16 @@
     }
     if (qc) state.cat = qc;
     if (qq != null) state.q = qq;
-    // 校验 sheet 是否在分类内
     if (state.sheet && !activeSheet()) {
       var list = sheetsInCat(state.cat);
       if (list.length) state.sheet = list[0].name; else state.sheet = null;
     }
   }
 
-  // ---------- 启动 ----------
+  // ===================== 启动 =====================
   function init() {
     readUrl();
+    applyStaticI18n();
     renderHero();
     renderTabs();
     var list = sheetsInCat(state.cat);
@@ -428,7 +484,12 @@
     renderPills();
     renderSheet();
     bindTools();
+    populateCurrency();
+    updateCurChip();
     document.body.classList.add("js");
+    if (window.FX && window.FX.onReady) {
+      window.FX.onReady(function () { if (CUR !== "CNY") { updateCurChip(); renderSheet(); } });
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

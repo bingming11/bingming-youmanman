@@ -10,6 +10,28 @@
 
   var DATA = window.YUNMANMAN_DATA || { sheets: [] };
 
+  // ---------- 语言 / 货币（与 app.js 同源） ----------
+  var LANG = (window.I18N_LANG || "zh");
+  if (LANG !== "zh" && LANG !== "en" && LANG !== "ko") LANG = "zh";
+  function T(k) {
+    var z = (window.I18N && window.I18N.zh) || {};
+    var d = (window.I18N && window.I18N[LANG]) || {};
+    var v = d[k];
+    if (v == null) v = z[k];
+    return v == null ? k : v;
+  }
+  function getCur() {
+    try { var v = localStorage.getItem("ym_cur"); if (v) return v; } catch (e) {}
+    return "CNY";
+  }
+  // 把 RMB 数值换算为当前币种并显示（CNY 直接显示 ¥）
+  function money(nCny) {
+    var code = getCur();
+    var val = (code === "CNY") ? nCny : (window.FX ? window.FX.convert(nCny, code) : nCny);
+    var sym = (code === "CNY") ? "¥" : (window.FX ? window.FX.sym(code) : "");
+    return (sym ? sym + " " : "") + fmt(val);
+  }
+
   // ---------- 工具 ----------
   function toNum(v) {
     if (v == null || v === "") return null;
@@ -117,7 +139,7 @@
     selCh.innerHTML = "";
     if (!CHANNELS.length) {
       var o = document.createElement("option");
-      o.textContent = "暂无可用线路报价";
+      o.textContent = T("calc.noRoute");
       selCh.appendChild(o);
       selCh.disabled = true;
       btn.disabled = true;
@@ -153,7 +175,7 @@
     if (weight == null || weight <= 0) {
       resBox.classList.remove("hidden");
       resBox.className = "calc-result calc-hint";
-      resBox.innerHTML = "请输入包裹重量（KG）后自动估算。";
+      resBox.innerHTML = T("calc.hint");
       return;
     }
     var L = toNum(inL.value), W = toNum(inWi.value), Hh = toNum(inH.value);
@@ -168,23 +190,24 @@
     var total = shipFee + regFee;
 
     var rows = "";
-    rows += row("实重", fmt(weight) + " KG");
-    if (volW > 0) rows += row("体积重", fmt(volW) + " KG <span class='sub'>(长×宽×高÷6000)</span>");
-    rows += row("计费重", fmt(billableW) + " KG" + (tier.min != null && chargeW < tier.min ? " <span class='sub'>已按最低计费重封底</span>" : ""));
-    rows += row("匹配重量段", esc(tier.lo) + " ~ " + esc(tier.hi) + " KG" + (m.capped ? " <span class='warn'>超出台阶·按最高档估算</span>" : ""));
-    rows += row("费率", fmt(tier.rate) + " 元/KG");
-    if (regFee > 0) rows += row((feeLabel(c.name) + "（票）"), fmt(regFee) + " 元");
-    if (tier.time) rows += row("参考时效", esc(tier.time));
+    rows += row(T("calc.realW"), fmt(weight) + " KG");
+    if (volW > 0) rows += row(T("calc.volW"), fmt(volW) + " KG <span class='sub'>(L×W×H÷6000)</span>");
+    rows += row(T("calc.chargeW"), fmt(billableW) + " KG" + (tier.min != null && chargeW < tier.min ? " <span class='sub'>" + T("calc.minfloor") + "</span>" : ""));
+    rows += row(T("calc.tier"), esc(tier.lo) + " ~ " + esc(tier.hi) + " KG" + (m.capped ? " <span class='warn'>" + T("calc.capped") + "</span>" : ""));
+    rows += row(T("calc.rate"), money(tier.rate) + " /KG");
+    if (regFee > 0) rows += row(feeLabel(c.name), money(regFee));
+    if (tier.time) rows += row(T("calc.time"), esc(tier.time));
     resBox.className = "calc-result calc-ok";
     resBox.innerHTML =
-      "<div class='calc-total'><span>预估运费合计</span><b>¥ " + fmt(total) + "</b></div>" +
+      "<div class='calc-total'><span>" + T("calc.total") + "</span><b>" + money(total) + "</b></div>" +
       "<div class='calc-break'>" + rows + "</div>";
   }
   function row(k, v) {
     return "<div class='calc-r'><span class='k'>" + k + "</span><span class='v'>" + v + "</span></div>";
   }
   function feeLabel(name) {
-    return (name && name.indexOf("美国") >= 0 && (name.indexOf("商派") >= 0 || name.indexOf("标准") >= 0)) ? "处理费" : "挂号费";
+    var isProc = (name && name.indexOf("美国") >= 0 && (name.indexOf("商派") >= 0 || name.indexOf("标准") >= 0));
+    return T(isProc ? "calc.procfee" : "calc.regfee");
   }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
@@ -199,5 +222,13 @@
     [inW, inL, inWi, inH].forEach(function (inp) { inp.addEventListener("input", compute); });
     $("calc-go").addEventListener("click", compute);
     fillChannels();
+    // 货币 / 语言 切换时，若弹窗已打开则重算（金额随币种实时换算）
+    window.addEventListener("ym:currencychange", function () {
+      if (!modal.classList.contains("hidden")) compute();
+    });
+    window.addEventListener("ym:langchange", function () {
+      LANG = window.I18N_LANG || "zh";
+      if (!modal.classList.contains("hidden")) compute();
+    });
   }
 })();

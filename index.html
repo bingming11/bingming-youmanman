@@ -21,30 +21,35 @@
           <path d="M12.5 15.5h9.2l-4.6 8-4.6-8z" fill="#FAAD39"/>
           <path d="M25.5 13.5h9M30 13.5v13" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
         </svg>
-        <div class="brand-t"><b>邮满满 Yumanman</b><span>跨境集运 · 云仓代发</span></div>
+        <div class="brand-t"><b>邮满满 Yumanman</b><span data-i18n="brand.sub">跨境集运 · 云仓代发</span></div>
       </div>
       <div class="ver">
         <span class="ver-chip">版本 <b id="ver-v">v0</b></span>
         <span class="ver-chip" id="ver-d">—</span>
-        <button class="btn-refresh" id="btn-refresh" title="重新扫描数据源并刷新">↻ 刷新数据</button>
+        <span class="langbar" id="langbar" role="group" aria-label="语言切换">
+          <button type="button" data-lang="zh" class="active">中</button>
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ko">한국어</button>
+        </span>
+        <button class="btn-refresh" id="btn-refresh" data-i18n="btn.refresh" title="重新扫描数据源并刷新">↻ 刷新数据</button>
       </div>
     </div>
 
     <div class="hero-main">
       <div>
-        <h1>邮满满云仓报价<br><em>一站式</em>查询中心</h1>
-        <p class="hero-sub">集运线路、云仓服务与参考规则集中展示。支持按线路 / 仓库 / 服务类型分类，关键词搜索、条件筛选与排序，金额与单位统一格式化。</p>
+        <h1><span data-i18n="hero.title1">邮满满云仓报价</span><br><em data-i18n="hero.title2">一站式</em>查询中心</h1>
+        <p class="hero-sub" data-i18n="hero.sub">集运线路、云仓服务与参考规则集中展示。支持按线路 / 仓库 / 服务类型分类，关键词搜索、条件筛选与排序，金额与单位统一格式化。</p>
         <div class="hero-meta">
-          <span class="chip">更新于 <b id="ver-d2">—</b></span>
-          <span class="chip">币种 <b>CNY ¥</b></span>
-          <span class="chip">数据源 <b>邮满满云仓报价表</b></span>
+          <span class="chip"><span data-i18n="chip.updated">更新于</span> <b id="ver-d2">—</b></span>
+          <span class="chip"><span data-i18n="chip.currency">币种</span> <b id="cur-chip">CNY ¥</b></span>
+          <span class="chip"><span data-i18n="chip.source">数据源</span> <b>邮满满云仓报价表</b></span>
         </div>
       </div>
       <div class="statgrid">
-        <div class="stat"><div class="n" id="st-route">—</div><div class="l">线路报价表</div></div>
-        <div class="stat"><div class="n" id="st-ware">—</div><div class="l">云仓服务表</div></div>
-        <div class="stat"><div class="n" id="st-ref">—</div><div class="l">参考规则表</div></div>
-        <div class="stat"><div class="n" id="st-rows">—</div><div class="l">报价条目总数</div></div>
+        <div class="stat"><div class="n" id="st-route">—</div><div class="l" data-i18n="stat.route">线路报价表</div></div>
+        <div class="stat"><div class="n" id="st-ware">—</div><div class="l" data-i18n="stat.warehouse">云仓服务表</div></div>
+        <div class="stat"><div class="n" id="st-ref">—</div><div class="l" data-i18n="stat.rule">参考规则表</div></div>
+        <div class="stat"><div class="n" id="st-rows">—</div><div class="l" data-i18n="stat.rows">报价条目总数</div></div>
       </div>
     </div>
   </div>
@@ -56,10 +61,11 @@
     <div class="tools">
       <div class="search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
-        <input id="q" type="search" placeholder="搜索：美国、普货、挂号费、0.1、分区…" autocomplete="off">
+        <input id="q" type="search" data-i18n="search.ph" data-i18n-mode="placeholder" placeholder="搜索：美国、普货、挂号费、0.1、分区…" autocomplete="off">
       </div>
-      <button class="btn-calc" id="btn-calc" title="根据线路报价实时估算运费">🧮 运费试算</button>
-      <button class="btn-clear" id="clear">清除</button>
+      <select id="cur-sel" class="cur-sel" title="货币切换"></select>
+      <button class="btn-calc" id="btn-calc" data-i18n="btn.calc">🧮 运费试算</button>
+      <button class="btn-clear" id="clear" data-i18n="btn.clear">清除</button>
     </div>
   </div>
 </nav>
@@ -72,8 +78,8 @@
 
 <footer>
   <div class="wrap">
-    <div>邮满满云仓报价查询中心 · 数据来自 <b>邮满满云仓报价表</b> 文件夹，新增 / 替换报价表后重新运行解析脚本即可同步。</div>
-    <div>© 邮满满国际物流（深圳）有限公司</div>
+    <div data-i18n="footer.text">邮满满云仓报价查询中心 · 数据来自 邮满满云仓报价表 文件夹，新增 / 替换报价表后重新运行解析脚本即可同步。</div>
+    <div data-i18n="footer.copy">© 邮满满国际物流（深圳）有限公司</div>
   </div>
 </footer>
 
@@ -82,40 +88,40 @@
   <div class="calc-backdrop" id="calc-backdrop"></div>
   <div class="calc-panel" role="dialog" aria-modal="true" aria-label="运费试算">
     <div class="calc-head">
-      <h3>🧮 运费试算</h3>
+      <h3 data-i18n="calc.title">🧮 运费试算</h3>
       <button class="calc-x" id="calc-x" aria-label="关闭">×</button>
     </div>
     <div class="calc-body">
       <div class="calc-field">
-        <label for="calc-channel">渠道 / 线路</label>
+        <label for="calc-channel" data-i18n="calc.channel">渠道 / 线路</label>
         <select id="calc-channel"></select>
       </div>
       <div class="calc-field">
-        <label for="calc-dest">目的地 / 产品</label>
+        <label for="calc-dest" data-i18n="calc.dest">目的地 / 产品</label>
         <select id="calc-dest"></select>
       </div>
       <div class="calc-grid2">
         <div class="calc-field">
-          <label for="calc-w">重量 (KG) <span class="req">*</span></label>
+          <label for="calc-w" data-i18n="calc.weight">重量 (KG) <span class="req">*</span></label>
           <input id="calc-w" type="number" min="0" step="0.01" inputmode="decimal" placeholder="如 0.5">
         </div>
         <div class="calc-field">
-          <label for="calc-l">长 (cm)</label>
+          <label for="calc-l" data-i18n="calc.len">长 (cm)</label>
           <input id="calc-l" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
         </div>
       </div>
       <div class="calc-grid2">
         <div class="calc-field">
-          <label for="calc-wi">宽 (cm)</label>
+          <label for="calc-wi" data-i18n="calc.wid">宽 (cm)</label>
           <input id="calc-wi" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
         </div>
         <div class="calc-field">
-          <label for="calc-h">高 (cm)</label>
+          <label for="calc-h" data-i18n="calc.hei">高 (cm)</label>
           <input id="calc-h" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
         </div>
       </div>
-      <button class="btn-calc-go" id="calc-go">计算预估运费</button>
-      <p class="calc-note">体积重 = 长×宽×高 ÷ 6000；计费重 = max(实重, 体积重)，并按线路最低计费重封底。结果随报价表更新，仅供参考。</p>
+      <button class="btn-calc-go" id="calc-go" data-i18n="calc.go">计算预估运费</button>
+      <p class="calc-note" data-i18n="calc.note">体积重 = 长×宽×高 ÷ 6000；计费重 = max(实重, 体积重)，并按线路最低计费重封底。结果随报价表更新，仅供参考。</p>
       <div class="calc-result hidden" id="calc-result" aria-live="polite"></div>
     </div>
   </div>
@@ -123,6 +129,8 @@
 
 <script src="data/data.js"></script>
 <script src="data/status.js"></script>
+<script src="assets/i18n.js"></script>
+<script src="assets/fx.js"></script>
 <script src="assets/app.js"></script>
 <script src="assets/calc.js"></script>
 </body>

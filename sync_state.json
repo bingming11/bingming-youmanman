@@ -1,0 +1,6 @@
+{
+  "active_file_id": "c5c4006bd78345a58d8ee62638689ea7",
+  "active_filename": "邮满满云仓+云途特惠+欧美专线0825.xls",
+  "activated_at": "2026-09-02",
+  "note": "0825 为当前生效表。下次同步直接拉此 file_id 落到 quotes/同名文件；换表时只需把 active_file_id / active_filename 改成新表的即可（新表在乐享上传后告诉我表名，我查到 file_id 填进来）。"
+}

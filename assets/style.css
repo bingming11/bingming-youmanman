@@ -143,7 +143,11 @@ main{padding:8px 0 90px;min-height:55vh}
 .tw{overflow-x:auto;margin:0 -18px;padding:0 18px}
 table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px;table-layout:fixed}
 th,td{border:1px solid var(--line-soft);padding:9px 11px;text-align:left;vertical-align:top;
-  word-break:break-word;overflow-wrap:anywhere}
+  word-break:normal;overflow-wrap:break-word;white-space:normal;line-height:1.55}
+td{max-width:380px}
+th{max-width:240px}
+/* 长文本列（备注/说明/内容/品目等）：限制在可滚动框内，避免逐字断行与整行被撑高 */
+td.td-note{max-height:170px;overflow:auto;white-space:pre-wrap;color:var(--ink-2);font-size:13px}
 thead th{background:var(--teal-d);color:#DFF0EE;font-weight:500;font-size:13px;border-color:#0A4C3C;
   position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap}
 thead th:hover{background:var(--teal)}
