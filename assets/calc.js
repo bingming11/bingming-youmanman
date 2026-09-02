@@ -3,7 +3,8 @@
  * 支持两种线路报价格式：
  *   A. 云途系列： 国家/地区 | 重量(KG)分段 | 最低计费重(KG) | 运费(RMB/KG) | 挂号费(RMB/票)
  *   B. 欧洲/美国系列：国家 | 重量段（kg） | 运费（RMB/KG） | 挂号费/处理费（RMB/票）
- * 体积重 = 长×宽×高 ÷ 6000；计费重 = max(实重, 体积重) 并取最低计费重封底。
+ * 体积系数按线路/目的地不同（÷5000 / ÷6000 / ÷8000，部分目的地有"体积重<2×实重按实重"规则）；
+ * 计费重 = max(实重, 体积重) 并取最低计费重封底。除数与规则均从报价表备注自动解析。
  */
 (function () {
   "use strict";
@@ -63,8 +64,46 @@
     return { lo: lo, hi: hi };
   }
 
+  // ---------- 体积系数（按线路/目的地，来自报价表备注） ----------
+  // 返回 {defaultDiv, overrides:{dest:{div,rule2x}}}
+  function parseDivisors(sheet) {
+    var defaultDiv = /欧洲快线|美国/.test(sheet.name) ? 8000 : 6000;
+    var overrides = {};
+    var noteRe = /长\s*[×*xX]\s*宽\s*[×*xX]\s*高\s*[÷/]\s*(\d+)|材积\s*[÷/]\s*(\d+)|体积重量\s*=\s*长\s*[×*xX]\s*宽\s*[×*xX]\s*高\s*[÷/]\s*(\d+)/gi;
+    (sheet.rows || []).forEach(function (r) {
+      (r || []).forEach(function (c) {
+        if (c == null) return;
+        var str = String(c);
+        var m; noteRe.lastIndex = 0;
+        while ((m = noteRe.exec(str)) !== null) {
+          var div = +(m[1] || m[2] || m[3]);
+          if (!div) continue;
+          var idx = str.search(/体积重|实重|材积|长\s*[×*xX]\s*宽/);
+          var lead = idx > 0 ? str.slice(0, idx) : "";
+          lead = lead.replace(/^[0-9]+[.、)）]*/, "").trim();
+          var has2x = /2\s*倍|两倍/.test(str);
+          var parts = lead.split(/[、，,/;；\s]+/).map(function (s) { return s.replace(/[:：]+$/, "").trim(); }).filter(Boolean);
+          if (parts.length === 0) {
+            defaultDiv = div; // 一般计费方式说明（如"材积/8000"）
+          } else {
+            parts.forEach(function (p) { if (p) overrides[p] = { div: div, rule2x: has2x }; });
+          }
+        }
+      });
+    });
+    return { defaultDiv: defaultDiv, overrides: overrides };
+  }
+  // 取某目的地/子产品的体积系数与特殊规则
+  function divisorFor(channel, dest) {
+    var d = channel.div;
+    if (d && d.overrides[dest]) return d.overrides[dest];
+    // 美国部分子产品（DP价/特货S/990特货S/DP价BZ）按 ÷6000
+    if (/DP价|特货S|990特货S|DP价BZ/.test(dest || "")) return { div: 6000, rule2x: false };
+    return { div: (d ? d.defaultDiv : 6000), rule2x: false };
+  }
+
   // ---------- 构建各渠道的费率表 ----------
-  var CHANNELS = []; // {name, dests: {dest: [tier,...]}}
+  var CHANNELS = []; // {name, dests: {dest: [tier,...]}, div}
   (function build() {
     DATA.sheets.forEach(function (s) {
       if (s.category !== "线路报价" || s.type !== "table") return;
@@ -98,7 +137,7 @@
       if (order.length === 0) return;
       // 每个目的地的费率档按上限升序
       order.forEach(function (d) { dests[d].sort(function (a, b) { return a.hi - b.hi; }); });
-      CHANNELS.push({ name: s.name, dests: dests, order: order });
+      CHANNELS.push({ name: s.name, dests: dests, order: order, div: parseDivisors(s) });
     });
   })();
 
@@ -120,6 +159,7 @@
   var inL = $("calc-l");
   var inWi = $("calc-wi");
   var inH = $("calc-h");
+  var inDecl = $("calc-decl");
   var resBox = $("calc-result");
 
   function openModal() {
@@ -179,27 +219,40 @@
       return;
     }
     var L = toNum(inL.value), W = toNum(inWi.value), Hh = toNum(inH.value);
-    var volW = (L && W && Hh) ? (L * W * Hh) / 6000 : 0;
-    var chargeW = Math.max(weight, volW);
+    var dInfo = divisorFor(c, dest);
+    var volW = (L && W && Hh) ? (L * W * Hh) / dInfo.div : 0;
+    var chargeW;
+    if (dInfo.rule2x && volW > 0) {
+      // 部分目的地：体积重 < 2×实重 按实重；否则按体积重
+      chargeW = (volW < 2 * weight) ? weight : volW;
+    } else {
+      chargeW = Math.max(weight, volW);
+    }
     var m = matchTier(tiers, chargeW);
     var tier = m.tier;
-    var minW = (tier.min != null) ? Math.max(chargeW, tier.min) : chargeW;
-    var billableW = Math.max(chargeW, minW);
-    var shipFee = (billableW * tier.rate);
-    var regFee = (tier.fee != null) ? tier.fee : 0;
-    var total = shipFee + regFee;
+    var billableW = (tier.min != null) ? Math.max(chargeW, tier.min) : chargeW;
+
+    var decl = toNum(inDecl.value);
 
     var rows = "";
     rows += row(T("calc.realW"), fmt(weight) + " KG");
-    if (volW > 0) rows += row(T("calc.volW"), fmt(volW) + " KG <span class='sub'>(L×W×H÷6000)</span>");
+    if (volW > 0) rows += row(T("calc.volW"), fmt(volW) + " KG <span class='sub'>(L×W×H÷" + dInfo.div + (dInfo.rule2x ? " · 2×规则" : "") + ")</span>");
+    else rows += row(T("calc.volW"), "— <span class='sub'>(未填尺寸)</span>");
     rows += row(T("calc.chargeW"), fmt(billableW) + " KG" + (tier.min != null && chargeW < tier.min ? " <span class='sub'>" + T("calc.minfloor") + "</span>" : ""));
+    rows += row(T("calc.decl"), decl != null ? "¥ " + fmt(decl) : "—");
+    // 费用明细（按当前报价表与币种换算，仅供参考）
+    rows += "<div class='calc-sep'>" + T("calc.feeDetail") + "</div>";
     rows += row(T("calc.tier"), esc(tier.lo) + " ~ " + esc(tier.hi) + " KG" + (m.capped ? " <span class='warn'>" + T("calc.capped") + "</span>" : ""));
     rows += row(T("calc.rate"), money(tier.rate) + " /KG");
-    if (regFee > 0) rows += row(feeLabel(c.name), money(regFee));
+    if (tier.fee != null && tier.fee > 0) rows += row(feeLabel(c.name), money(tier.fee));
     if (tier.time) rows += row(T("calc.time"), esc(tier.time));
+    var shipFee = billableW * tier.rate;
+    var regFee = (tier.fee != null) ? tier.fee : 0;
+    var total = shipFee + regFee;
+    rows += row(T("calc.total"), money(total));
     resBox.className = "calc-result calc-ok";
     resBox.innerHTML =
-      "<div class='calc-total'><span>" + T("calc.total") + "</span><b>" + money(total) + "</b></div>" +
+      "<div class='calc-total'><span>" + T("calc.chargeW") + "</span><b>" + fmt(billableW) + " KG</b></div>" +
       "<div class='calc-break'>" + rows + "</div>";
   }
   function row(k, v) {
@@ -219,7 +272,7 @@
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !modal.classList.contains("hidden")) closeModal(); });
     selCh.addEventListener("change", function () { fillDests(); compute(); });
     selD.addEventListener("change", compute);
-    [inW, inL, inWi, inH].forEach(function (inp) { inp.addEventListener("input", compute); });
+    [inW, inL, inWi, inH, inDecl].forEach(function (inp) { inp.addEventListener("input", compute); });
     $("calc-go").addEventListener("click", compute);
     fillChannels();
     // 货币 / 语言 切换时，若弹窗已打开则重算（金额随币种实时换算）

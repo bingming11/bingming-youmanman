@@ -250,6 +250,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .calc-r .v{color:var(--ink);font-weight:600;text-align:right;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
 .calc-r .v .sub{display:block;font-family:inherit;font-weight:400;color:var(--ink-3);font-size:11.5px}
 .calc-r .v .warn{color:var(--danger);font-weight:600}
+.calc-sep{margin-top:6px;padding:7px 14px;background:var(--teal-l);color:var(--teal-d);
+  font-size:12px;font-weight:700;letter-spacing:.04em;border-top:1px solid var(--line-soft)}
 
 @media (max-width:600px){
   .calc-modal{padding:0;align-items:flex-end}

@@ -120,6 +120,12 @@
           <input id="calc-h" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
         </div>
       </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="calc-decl" data-i18n="calc.decl">申报价值 (¥)</label>
+          <input id="calc-decl" type="number" min="0" step="0.01" inputmode="decimal" placeholder="如 200">
+        </div>
+      </div>
       <button class="btn-calc-go" id="calc-go" data-i18n="calc.go">计算预估运费</button>
       <p class="calc-note" data-i18n="calc.note">体积重 = 长×宽×高 ÷ 6000；计费重 = max(实重, 体积重)，并按线路最低计费重封底。结果随报价表更新，仅供参考。</p>
       <div class="calc-result hidden" id="calc-result" aria-live="polite"></div>
