@@ -386,6 +386,7 @@
   // ===================== 渲染文本 =====================
   function renderText(sheet) {
     var wrap = el("div", "card");
+    wrap.setAttribute("data-sheet-type", "text");
     var head = el("div", "sec-head");
     head.appendChild(el("h2", null, sheet.name));
     var meta = el("div", "meta");
@@ -393,11 +394,52 @@
     if (sheet.sourceFile) meta.appendChild(el("span", "tag", T("tag.source") + " " + sheet.sourceFile));
     head.appendChild(meta);
     wrap.appendChild(head);
+    var body = el("div", "sheet-body");
+    body.setAttribute("data-k", "text");
     (sheet.blocks || []).forEach(function (blk) {
       var p = el("p", "plain", blk);
-      wrap.appendChild(p);
+      body.appendChild(p);
     });
+    wrap.appendChild(body);
     return wrap;
+  }
+
+  // ===================== 说明区：铺满 + 收起/展开 =====================
+  // 超过阈值高度的长说明自动折叠，点击按钮在「铺满全部内容」与「仅留按钮条」之间切换。
+  var COLLAPSE_MAX = 320; // px，内容超出则初始折叠
+  function wireCollapsibles() {
+    var cards = document.querySelectorAll("#sheet-area .card[data-sheet-type='text']");
+    cards.forEach(function (card) {
+      if (card.getAttribute("data-collapse-wired")) return;
+      card.setAttribute("data-collapse-wired", "1");
+      var body = card.querySelector(".sheet-body");
+      if (!body) return;
+      var bar = el("div", "collbar");
+      var btn = el("button", "collbar-btn");
+      btn.type = "button";
+      btn.setAttribute("aria-expanded", "true");
+      bar.appendChild(btn);
+      card.appendChild(bar);
+
+      function setCollapsed(c) {
+        if (c) {
+          body.classList.add("collapsed");
+          card.classList.remove("open");
+          btn.innerHTML = T("sheet.expand");
+          btn.setAttribute("aria-expanded", "false");
+        } else {
+          body.classList.remove("collapsed");
+          card.classList.add("open");
+          btn.innerHTML = T("sheet.collapse");
+          btn.setAttribute("aria-expanded", "true");
+        }
+      }
+      btn.addEventListener("click", function () {
+        setCollapsed(!body.classList.contains("collapsed"));
+      });
+      // 初始：长内容折叠（短内容直接铺满，按钮仍可收起）
+      setCollapsed(body.scrollHeight > COLLAPSE_MAX);
+    });
   }
 
   // ===================== 渲染当前 sheet =====================
@@ -408,6 +450,7 @@
     if (!s) { main.appendChild(el("div", "empty", T("empty.cat"))); return; }
     if (s.type === "text") main.appendChild(renderText(s));
     else main.appendChild(renderTable(s));
+    wireCollapsibles();
   }
 
   // ===================== 工具栏绑定 =====================
