@@ -368,8 +368,19 @@
           td.innerHTML = nn != null ? fmtNum(nn) : highlight(v);
         } else {
           var disp = isCountryCol(h) ? countryText(v) : v;
-          td.innerHTML = highlight(disp);
-          if (isNoteHeader(h)) td.classList.add("td-note");
+          if (isNoteHeader(h)) {
+            td.className = "td-note";
+            var nb = el("div", "note-body");
+            nb.innerHTML = highlight(disp);
+            var bar = el("div", "note-collbar");
+            var nbtn = el("button", "note-collbar-btn");
+            nbtn.type = "button";
+            bar.appendChild(nbtn);
+            td.appendChild(nb);
+            td.appendChild(bar);
+          } else {
+            td.innerHTML = highlight(disp);
+          }
         }
         tr.appendChild(td);
       });
@@ -442,6 +453,39 @@
     });
   }
 
+  // ===================== 表格超长备注：折叠 + 展开铺满 =====================
+  // 超长的备注单元格默认折叠（限高 + 渐隐 + 展开按钮），点击后展开铺满下方。
+  var NOTE_COLLAPSE_MAX = 90; // px，内容超出此高度则初始折叠（约 4.4 行）
+  function wireNoteCollapsibles() {
+    var notes = document.querySelectorAll("#sheet-area td.td-note");
+    notes.forEach(function (td) {
+      var nb = td.querySelector(".note-body");
+      var btn = td.querySelector(".note-collbar-btn");
+      var bar = td.querySelector(".note-collbar");
+      if (!nb || !btn || !bar) return;
+      function setCollapsed(c) {
+        if (c) {
+          nb.classList.add("collapsed");
+          btn.innerHTML = T("sheet.expand");
+          btn.setAttribute("aria-expanded", "false");
+          bar.classList.remove("hidden");
+        } else {
+          nb.classList.remove("collapsed");
+          btn.innerHTML = T("sheet.collapse");
+          btn.setAttribute("aria-expanded", "true");
+          bar.classList.remove("hidden");
+        }
+      }
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setCollapsed(!nb.classList.contains("collapsed"));
+      });
+      // 初始：仅超长才折叠并显示按钮；短备注直接铺满，隐藏按钮条
+      if (nb.scrollHeight > NOTE_COLLAPSE_MAX) setCollapsed(true);
+      else { nb.classList.remove("collapsed"); bar.classList.add("hidden"); }
+    });
+  }
+
   // ===================== 渲染当前 sheet =====================
   function renderSheet() {
     var main = $("#sheet-area");
@@ -451,6 +495,7 @@
     if (s.type === "text") main.appendChild(renderText(s));
     else main.appendChild(renderTable(s));
     wireCollapsibles();
+    wireNoteCollapsibles();
   }
 
   // ===================== 工具栏绑定 =====================

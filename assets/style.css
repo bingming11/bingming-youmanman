@@ -147,9 +147,22 @@ th,td{border:1px solid var(--line-soft);padding:9px 11px;text-align:left;vertica
   min-width:110px}
 td{max-width:420px}
 th{max-width:240px}
-/* 长文本列（备注/说明/内容/品目等）：限制在可滚动框内，避免逐字断行与整行被撑高 */
-td.td-note{min-width:300px;max-width:460px;max-height:170px;overflow:auto;white-space:pre-wrap;
+/* 长文本列（备注/说明/内容/品目等）：超长折叠，展开时铺满下方 */
+td.td-note{min-width:300px;max-width:460px;padding:0;vertical-align:top;
   color:var(--ink-2);font-size:13px;word-break:keep-all}
+td.td-note .note-body{padding:9px 11px;white-space:pre-wrap;overflow:hidden;
+  max-height:2000px;transition:max-height .3s ease}
+td.td-note .note-body.collapsed{max-height:4.4em;position:relative}
+td.td-note .note-body.collapsed::after{content:"";position:absolute;left:11px;right:11px;bottom:0;
+  height:18px;background:linear-gradient(to top,var(--surface),rgba(255,255,255,0));pointer-events:none}
+td.td-note .note-collbar{display:flex;justify-content:center;padding:6px 0 8px;
+  border-top:1px dashed var(--line);background:var(--surface)}
+td.td-note .note-collbar.hidden{display:none}
+td.td-note .note-collbar-btn{appearance:none;cursor:pointer;border:1px solid var(--line);
+  background:var(--surface);color:var(--teal);font:inherit;font-weight:600;font-size:12px;
+  padding:4px 15px;border-radius:100px;transition:.16s}
+td.td-note .note-collbar-btn:hover{background:var(--teal-l);border-color:var(--teal)}
+td.td-note .note-collbar-btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 /* 数字/货币列保持紧凑不换行 */
 td.num,td.cur{min-width:70px;white-space:nowrap}
 thead th{background:var(--teal-d);color:#DFF0EE;font-weight:500;font-size:13px;border-color:#0A4C3C;
