@@ -6,7 +6,7 @@
 <title>邮满满云仓 · 报价查询中心</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -24,10 +24,10 @@
         <div class="brand-t"><b>邮满满 Yumanman</b><span data-i18n="brand.sub">跨境集运 · 云仓代发</span></div>
       </div>
       <div class="ver">
-        <span class="ver-chip">版本 <b id="ver-v">v0</b></span>
+        <span class="ver-chip"><span data-i18n="ver.label">版本</span> <b id="ver-v">v0</b></span>
         <span class="ver-chip" id="ver-d">—</span>
         <span class="langbar" id="langbar" role="group" aria-label="语言切换">
-          <button type="button" data-lang="zh" class="active">中</button>
+          <button type="button" data-lang="zh" class="active">ZH</button>
           <button type="button" data-lang="en">EN</button>
           <button type="button" data-lang="ko">한국어</button>
         </span>
@@ -42,7 +42,7 @@
         <div class="hero-meta">
           <span class="chip"><span data-i18n="chip.updated">更新于</span> <b id="ver-d2">—</b></span>
           <span class="chip"><span data-i18n="chip.currency">币种</span> <b id="cur-chip">CNY ¥</b></span>
-          <span class="chip"><span data-i18n="chip.source">数据源</span> <b>邮满满云仓报价表</b></span>
+          <span class="chip"><span data-i18n="chip.source">数据源</span> <b data-i18n="chip.sourceVal">邮满满云仓报价表</b></span>
         </div>
       </div>
       <div class="statgrid">
@@ -103,27 +103,27 @@
       <div class="calc-grid2">
         <div class="calc-field">
           <label for="calc-w" data-i18n="calc.weight">重量 (KG) <span class="req">*</span></label>
-          <input id="calc-w" type="number" min="0" step="0.01" inputmode="decimal" placeholder="如 0.5">
+          <input id="calc-w" type="number" min="0" step="0.01" inputmode="decimal" placeholder="如 0.5" data-i18n="calc.ph.weight" data-i18n-mode="placeholder">
         </div>
         <div class="calc-field">
           <label for="calc-l" data-i18n="calc.len">长 (cm)</label>
-          <input id="calc-l" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
+          <input id="calc-l" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填" data-i18n="calc.ph.opt" data-i18n-mode="placeholder">
         </div>
       </div>
       <div class="calc-grid2">
         <div class="calc-field">
           <label for="calc-wi" data-i18n="calc.wid">宽 (cm)</label>
-          <input id="calc-wi" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
+          <input id="calc-wi" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填" data-i18n="calc.ph.opt" data-i18n-mode="placeholder">
         </div>
         <div class="calc-field">
           <label for="calc-h" data-i18n="calc.hei">高 (cm)</label>
-          <input id="calc-h" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填">
+          <input id="calc-h" type="number" min="0" step="0.1" inputmode="decimal" placeholder="选填" data-i18n="calc.ph.opt" data-i18n-mode="placeholder">
         </div>
       </div>
       <div class="form-row">
         <div class="field">
           <label for="calc-decl" data-i18n="calc.decl">申报价值 (¥)</label>
-          <input id="calc-decl" type="number" min="0" step="0.01" inputmode="decimal" placeholder="如 200">
+          <input id="calc-decl" type="number" min="0" step="0.01" inputmode="decimal" placeholder="如 200" data-i18n="calc.ph.decl" data-i18n-mode="placeholder">
         </div>
       </div>
       <button class="btn-calc-go" id="calc-go" data-i18n="calc.go">计算预估运费</button>
