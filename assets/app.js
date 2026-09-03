@@ -351,10 +351,19 @@
     });
     thead.appendChild(trh); table.appendChild(thead);
 
+    var noteCis = [];
+    sheet.headers.forEach(function (h, ci) { if (isNoteHeader(h)) noteCis.push(ci); });
     var tb = el("tbody");
     rows.forEach(function (r) {
       var tr = el("tr");
+      var maxNoteLen = 0, nonNoteLen = 0;
       sheet.headers.forEach(function (h, ci) {
+        var txt = String(r[ci] || "");
+        if (noteCis.indexOf(ci) >= 0) {
+          if (txt.length > maxNoteLen) maxNoteLen = txt.length;
+        } else if (txt.trim() !== "") {
+          nonNoteLen += txt.length;
+        }
         var role = colRole(sheet, ci);
         var v = r[ci];
         var td = el("td");
@@ -384,6 +393,7 @@
         }
         tr.appendChild(td);
       });
+      if (maxNoteLen > 150 && nonNoteLen <= 80) tr.classList.add("note-row");
       tb.appendChild(tr);
     });
     table.appendChild(tb); tw.appendChild(table); wrap.appendChild(tw);
@@ -455,6 +465,7 @@
 
   // ===================== 表格超长备注：折叠 + 展开铺满 =====================
   // 超长的备注单元格默认折叠（限高 + 渐隐 + 展开按钮），点击后展开铺满下方。
+  // 对"说明行"（非备注列全空、备注列很长）额外做整行跨列展开：展开时 colSpan 铺满整行，隐藏同排其他 td。
   var NOTE_COLLAPSE_MAX = 90; // px，内容超出此高度则初始折叠（约 4.4 行）
   function wireNoteCollapsibles() {
     var notes = document.querySelectorAll("#sheet-area td.td-note");
@@ -463,17 +474,36 @@
       var btn = td.querySelector(".note-collbar-btn");
       var bar = td.querySelector(".note-collbar");
       if (!nb || !btn || !bar) return;
+      var tr = td.parentNode;
+      var isNoteRow = tr && tr.classList.contains("note-row");
+      var siblings = isNoteRow ? [].slice.call(tr.children).filter(function (c) { return c !== td; }) : [];
+      function getTotalCols() {
+        var thead = tr && tr.parentNode && tr.parentNode.parentNode && tr.parentNode.parentNode.querySelector("thead tr");
+        return thead ? thead.children.length : (siblings.length + 1);
+      }
       function setCollapsed(c) {
         if (c) {
           nb.classList.add("collapsed");
           btn.innerHTML = T("sheet.expand");
           btn.setAttribute("aria-expanded", "false");
           bar.classList.remove("hidden");
+          if (isNoteRow) {
+            tr.classList.remove("open");
+            if (td.colSpan > 1) {
+              td.removeAttribute("colspan");
+              siblings.forEach(function (s) { s.classList.remove("hidden"); });
+            }
+          }
         } else {
           nb.classList.remove("collapsed");
           btn.innerHTML = T("sheet.collapse");
           btn.setAttribute("aria-expanded", "true");
           bar.classList.remove("hidden");
+          if (isNoteRow) {
+            tr.classList.add("open");
+            td.colSpan = getTotalCols();
+            siblings.forEach(function (s) { s.classList.add("hidden"); });
+          }
         }
       }
       btn.addEventListener("click", function (e) {

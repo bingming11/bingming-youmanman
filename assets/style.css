@@ -163,10 +163,13 @@ td.td-note .note-collbar-btn{appearance:none;cursor:pointer;border:1px solid var
   padding:4px 15px;border-radius:100px;transition:.16s}
 td.td-note .note-collbar-btn:hover{background:var(--teal-l);border-color:var(--teal)}
 td.td-note .note-collbar-btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+/* 说明行展开时跨列铺满整行，临时去掉 max-width 限制 */
+tr.note-row td.td-note{transition:max-width .3s ease}
+tr.note-row.open td.td-note{max-width:none}
 /* 数字/货币列保持紧凑不换行 */
 td.num,td.cur{min-width:70px;white-space:nowrap}
 thead th{background:var(--teal-d);color:#DFF0EE;font-weight:500;font-size:13px;border-color:#0A4C3C;
-  position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap}
+  position:sticky;top:0;cursor:pointer;user-select:none}
 thead th:hover{background:var(--teal)}
 thead th .ar{font-size:10px;opacity:.6;margin-left:4px}
 thead th.num{text-align:right}
