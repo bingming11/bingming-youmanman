@@ -137,6 +137,20 @@ main{padding:8px 0 90px;min-height:55vh}
 .tag.r{background:var(--danger-l);color:var(--danger)}
 .tag.b{background:var(--accent-l,#E8F0FE);color:var(--accent-d,#1A56DB)}
 
+/* ---------- 渠道说明公共区 ---------- */
+.channel-notice{background:var(--surface);border-left:4px solid var(--amber);border-radius:var(--r);
+  padding:14px 18px;margin:0 0 16px;box-shadow:var(--shadow);animation:chanFade .2s ease both}
+@keyframes chanFade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.channel-notice h3{margin:0 0 10px;font-size:15px;color:var(--ink)}
+.channel-notice-body{line-height:1.7;color:var(--ink-2)}
+.channel-notice-item{margin:0 0 10px;white-space:pre-line}
+.channel-notice-item:last-child{margin-bottom:0}
+.channel-notice-toggle{appearance:none;border:1px solid var(--amber);background:var(--amber-l);
+  color:var(--amber-d);font:inherit;font-size:12px;font-weight:600;padding:5px 12px;border-radius:100px;
+  cursor:pointer;white-space:nowrap}
+.channel-notice-toggle:hover{background:var(--amber);color:#3A2A08}
+.channel-notice-toggle:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
 /* ---------- TABLES ---------- */
 .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);
   padding:16px 18px;margin:0 0 16px;box-shadow:var(--shadow);overflow:hidden}

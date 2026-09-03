@@ -247,6 +247,63 @@
     return out;
   }
 
+  // ===================== 跨渠道公共说明检测 =====================
+  // 遍历所有“线路报价”表格，若某段说明文字在每个渠道表格中都完全相同，
+  // 则把它提取为“渠道说明”，不再在每个表格里重复渲染。
+  function normalizeNoteText(s) {
+    return String(s || "").replace(/\s+/g, " ").trim();
+  }
+  function getNoteRows(sheet) {
+    var noteCis = [];
+    sheet.headers.forEach(function (h, ci) { if (isNoteHeader(h)) noteCis.push(ci); });
+    var out = [];
+    sheet.rows.forEach(function (r, ri) {
+      var maxNoteLen = 0, nonNoteLen = 0;
+      sheet.headers.forEach(function (h, ci) {
+        var t = String(r[ci] || "");
+        if (noteCis.indexOf(ci) >= 0) { if (t.length > maxNoteLen) maxNoteLen = t.length; }
+        else if (t.trim() !== "") nonNoteLen += t.length;
+      });
+      var gMax = 0, gCi = -1, gOthers = 0, gNonEmpty = 0, gPrice = false;
+      sheet.headers.forEach(function (h, ci) {
+        var t = String(r[ci] || "").trim();
+        if (!t) return;
+        gNonEmpty++;
+        var role = colRole(sheet, ci);
+        if (role === "cur" && t !== "/") gPrice = true;
+        if (t.length > gMax) { gMax = t.length; gCi = ci; }
+        else gOthers += t.length;
+      });
+      var noteCi = -1;
+      if (maxNoteLen > 60 && nonNoteLen <= 80) {
+        noteCis.forEach(function (ci) {
+          if (noteCi < 0 || String(r[ci] || "").length > String(r[noteCi] || "").length) noteCi = ci;
+        });
+      }
+      if (noteCi < 0 && !gPrice && gMax > 60 && gOthers <= 100 && gNonEmpty <= 3) noteCi = gCi;
+      if (noteCi >= 0) out.push({ row: ri, ci: noteCi, text: String(r[noteCi] || "").trim() });
+    });
+    return out;
+  }
+  function computeCommonChannelNotices() {
+    var routeSheets = DATA.sheets.filter(function (s) { return s.type === "table" && s.category === "线路报价"; });
+    if (!routeSheets.length) return [];
+    var maps = routeSheets.map(function (s) {
+      var map = {};
+      getNoteRows(s).forEach(function (n) { map[normalizeNoteText(n.text)] = n.text; });
+      return map;
+    });
+    var common = [];
+    for (var key in maps[0]) {
+      var allHave = maps.every(function (m) { return m[key]; });
+      if (allHave) common.push(maps[0][key]);
+    }
+    return common;
+  }
+  var COMMON_CHANNEL_NOTICES = computeCommonChannelNotices();
+  var COMMON_CHANNEL_NOTICE_SET = {};
+  COMMON_CHANNEL_NOTICES.forEach(function (t) { COMMON_CHANNEL_NOTICE_SET[normalizeNoteText(t)] = true; });
+
   // ===================== 过滤 + 排序 =====================
   function visibleRows(sheet) {
     var q = state.q.trim().toLowerCase();
@@ -301,6 +358,20 @@
     if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? T("tag.lexiangExcel") : T("tag.lexiangDoc")));
     if (sheet.sourceFile) meta.appendChild(el("span", "tag", T("tag.source") + " " + sheet.sourceFile));
     head.appendChild(meta);
+    // 存在跨渠道公共说明时，在头部显示切换按钮
+    if (COMMON_CHANNEL_NOTICES.length && sheet.category === "线路报价") {
+      var cnBtn = el("button", "channel-notice-toggle", T("btn.channelNotice"));
+      cnBtn.type = "button";
+      cnBtn.setAttribute("aria-expanded", "false");
+      cnBtn.addEventListener("click", function () {
+        var box = document.getElementById("channel-notice");
+        if (!box) return;
+        var hidden = box.classList.toggle("hidden");
+        cnBtn.setAttribute("aria-expanded", String(!hidden));
+        cnBtn.textContent = hidden ? T("btn.channelNotice") : T("sheet.collapse");
+      });
+      head.appendChild(cnBtn);
+    }
     wrap.appendChild(head);
 
     var fcols = filterableCols(sheet);
@@ -325,6 +396,14 @@
     }
 
     var rows = visibleRows(sheet);
+    // 若存在跨渠道公共说明，把它们从当前表格中移除，统一在上方“渠道说明”区域展示
+    if (COMMON_CHANNEL_NOTICES.length && sheet.category === "线路报价") {
+      rows = rows.filter(function (r) {
+        return !getNoteRows({ headers: sheet.headers, rows: [r] }).some(function (n) {
+          return COMMON_CHANNEL_NOTICE_SET[normalizeNoteText(n.text)];
+        });
+      });
+    }
     if (!rows.length) {
       wrap.appendChild(el("div", "empty", T("empty.nomatch").replace("…", state.q ? "「" + state.q + "」" : "…")));
       return wrap;
@@ -540,6 +619,21 @@
     main.innerHTML = "";
     var s = activeSheet();
     if (!s) { main.appendChild(el("div", "empty", T("empty.cat"))); return; }
+    // 在当前表格上方渲染跨渠道公共说明区域（默认折叠）
+    if (COMMON_CHANNEL_NOTICES.length && s.type === "table" && s.category === "线路报价") {
+      var box = el("div", "channel-notice hidden");
+      box.id = "channel-notice";
+      box.appendChild(el("h3", null, T("channelNotice.title")));
+      var body = el("div", "channel-notice-body");
+      COMMON_CHANNEL_NOTICES.forEach(function (txt) {
+        var p = el("p", "channel-notice-item");
+        p.style.whiteSpace = "pre-line";
+        p.textContent = txt;
+        body.appendChild(p);
+      });
+      box.appendChild(body);
+      main.appendChild(box);
+    }
     if (s.type === "text") main.appendChild(renderText(s));
     else main.appendChild(renderTable(s));
     wireCollapsibles();
