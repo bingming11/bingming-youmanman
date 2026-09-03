@@ -375,20 +375,6 @@
     if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? T("tag.lexiangExcel") : T("tag.lexiangDoc")));
     if (sheet.sourceFile) meta.appendChild(el("span", "tag", T("tag.source") + " " + sheet.sourceFile));
     head.appendChild(meta);
-    // 存在跨渠道公共说明时，在头部显示切换按钮
-    if (COMMON_CHANNEL_NOTICES.length && sheet.category === "线路报价") {
-      var cnBtn = el("button", "channel-notice-toggle", T("btn.channelNotice"));
-      cnBtn.type = "button";
-      cnBtn.setAttribute("aria-expanded", "false");
-      cnBtn.addEventListener("click", function () {
-        var box = document.getElementById("channel-notice");
-        if (!box) return;
-        var hidden = box.classList.toggle("hidden");
-        cnBtn.setAttribute("aria-expanded", String(!hidden));
-        cnBtn.textContent = hidden ? T("btn.channelNotice") : T("sheet.collapse");
-      });
-      head.appendChild(cnBtn);
-    }
     wrap.appendChild(head);
 
     var fcols = filterableCols(sheet);
@@ -572,44 +558,6 @@
     return wrap;
   }
 
-  // ===================== 说明区：铺满 + 收起/展开 =====================
-  // 超过阈值高度的长说明自动折叠，点击按钮在「铺满全部内容」与「仅留按钮条」之间切换。
-  var COLLAPSE_MAX = 320; // px，内容超出则初始折叠
-  function wireCollapsibles() {
-    var cards = document.querySelectorAll("#sheet-area .card[data-sheet-type='text']");
-    cards.forEach(function (card) {
-      if (card.getAttribute("data-collapse-wired")) return;
-      card.setAttribute("data-collapse-wired", "1");
-      var body = card.querySelector(".sheet-body");
-      if (!body) return;
-      var bar = el("div", "collbar");
-      var btn = el("button", "collbar-btn");
-      btn.type = "button";
-      btn.setAttribute("aria-expanded", "true");
-      bar.appendChild(btn);
-      card.appendChild(bar);
-
-      function setCollapsed(c) {
-        if (c) {
-          body.classList.add("collapsed");
-          card.classList.remove("open");
-          btn.innerHTML = T("sheet.expand");
-          btn.setAttribute("aria-expanded", "false");
-        } else {
-          body.classList.remove("collapsed");
-          card.classList.add("open");
-          btn.innerHTML = T("sheet.collapse");
-          btn.setAttribute("aria-expanded", "true");
-        }
-      }
-      btn.addEventListener("click", function () {
-        setCollapsed(!body.classList.contains("collapsed"));
-      });
-      // 初始：长内容折叠（短内容直接铺满，按钮仍可收起）
-      setCollapsed(body.scrollHeight > COLLAPSE_MAX);
-    });
-  }
-
   // ===================== 表格超长备注：折叠 + 展开铺满 =====================
   // 超长的备注单元格默认折叠（限高 + 渐隐 + 展开按钮），点击后展开铺满下方。
   // 对"说明行"（非备注列全空、备注列很长）额外做整行跨列展开：展开时 colSpan 铺满整行，隐藏同排其他 td。
@@ -663,9 +611,9 @@
     main.innerHTML = "";
     var s = activeSheet();
     if (!s) { main.appendChild(el("div", "empty", T("empty.cat"))); return; }
-    // 在当前表格上方渲染跨渠道公共说明区域（默认折叠）
+    // 在当前表格上方渲染跨渠道公共说明区域（始终展开）
     if (COMMON_CHANNEL_NOTICES.length && s.type === "table" && s.category === "线路报价") {
-      var box = el("div", "channel-notice hidden");
+      var box = el("div", "channel-notice");
       box.id = "channel-notice";
       box.appendChild(el("h3", null, T("channelNotice.title")));
       var body = el("div", "channel-notice-body");
@@ -680,7 +628,6 @@
     }
     if (s.type === "text") main.appendChild(renderText(s));
     else main.appendChild(renderTable(s));
-    wireCollapsibles();
     wireNoteCollapsibles();
   }
 

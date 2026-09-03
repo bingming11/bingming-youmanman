@@ -56,8 +56,9 @@ body{
 .btn-refresh.busy{opacity:.7}
 
 .hero-main{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center;margin-top:24px}
-h1{font-size:clamp(26px,3.4vw,38px);line-height:1.14;margin:0;font-weight:700;letter-spacing:-.02em}
+h1{font-size:clamp(26px,3.4vw,38px);line-height:1.14;margin:0;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
 h1 em{font-style:normal;color:var(--amber)}
+h2,h3,.brand-t b{white-space:nowrap}
 .hero-sub{color:rgba(255,255,255,.82);font-size:15px;margin:13px 0 0;max-width:50ch}
 .hero-meta{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0 0}
 .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.13);
@@ -145,23 +146,18 @@ main{padding:8px 0 90px;min-height:55vh}
 .channel-notice-body{line-height:1.7;color:var(--ink-2)}
 .channel-notice-item{margin:0 0 10px;white-space:pre-line}
 .channel-notice-item:last-child{margin-bottom:0}
-.channel-notice-toggle{appearance:none;border:1px solid var(--amber);background:var(--amber-l);
-  color:var(--amber-d);font:inherit;font-size:12px;font-weight:600;padding:5px 12px;border-radius:100px;
-  cursor:pointer;white-space:nowrap}
-.channel-notice-toggle:hover{background:var(--amber);color:#3A2A08}
-.channel-notice-toggle:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-
 /* ---------- TABLES ---------- */
 .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);
   padding:16px 18px;margin:0 0 16px;box-shadow:var(--shadow);overflow:hidden}
 .tw{overflow-x:auto;margin:0 -18px;padding:0 18px;scrollbar-width:none;-ms-overflow-style:none}
 .tw::-webkit-scrollbar{display:none}
-table{border-collapse:collapse;width:100%;font-size:13px;table-layout:auto}
-th,td{border:1px solid var(--line-soft);padding:7px 8px;text-align:left;vertical-align:top;
-  word-break:keep-all;overflow-wrap:break-word;white-space:normal;line-height:1.45;
+table{border-collapse:collapse;width:100%;font-size:12.5px;table-layout:auto}
+th,td{border:1px solid var(--line-soft);padding:5px 6px;text-align:left;vertical-align:top;
+  word-break:keep-all;overflow-wrap:break-word;white-space:nowrap;line-height:1.45;
   min-width:auto}
 td{max-width:360px}
 th{max-width:200px}
+td.td-note{white-space:normal}
 /* 长文本列（备注/说明/内容/品目等）：超长折叠，展开时铺满下方 */
 td.td-note{min-width:300px;max-width:460px;padding:0;vertical-align:top;
   color:var(--ink-2);font-size:13px;word-break:keep-all}
@@ -186,9 +182,8 @@ td.td-note-full{max-width:none !important;min-width:0;width:100%}
 tr.note-row.open td.td-note-full{max-width:none}
 /* 数字/货币列保持紧凑不换行 */
 td.num,td.cur{min-width:68px;white-space:nowrap}
-thead th{background:var(--teal-d);color:#DFF0EE;font-weight:500;font-size:12px;border-color:#0A4C3C;
-  position:sticky;top:0;cursor:pointer;user-select:none;overflow-wrap:anywhere;word-break:break-word;
-  hyphens:auto}
+thead th{background:var(--teal-d);color:#DFF0EE;font-weight:500;font-size:11px;border-color:#0A4C3C;
+  position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap}
 thead th:hover{background:var(--teal)}
 thead th .ar{font-size:10px;opacity:.6;margin-left:4px}
 thead th.num{text-align:right}
@@ -205,23 +200,6 @@ mark{background:#FDECC4;color:var(--ink);padding:0 2px;border-radius:2px}
 /* ---------- TEXT / RULES ---------- */
 .plain{white-space:pre-line;color:var(--ink-2);margin:6px 0 0;line-height:1.7}
 
-/* 说明区：铺满容器 + 收起/展开 */
-.card[data-sheet-type='text']{position:relative;display:flex;flex-direction:column}
-.sheet-body{overflow:hidden;transition:max-height .3s ease, opacity .2s ease;
-  flex:1 1 auto}
-/* 展开且内容较长时，占满可用空间并在内部滚动，按钮条常驻底部 */
-.card[data-sheet-type='text'].open .sheet-body{max-height:70vh;overflow:auto}
-.sheet-body.collapsed{max-height:0 !important;opacity:0;padding-top:0;padding-bottom:0}
-/* 收起后仅保留按钮条 */
-.collbar{position:sticky;bottom:0;display:flex;justify-content:center;
-  margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);
-  background:linear-gradient(to top,var(--surface) 70%,rgba(255,255,255,0))}
-.collbar-btn{appearance:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);
-  color:var(--teal);font:inherit;font-weight:600;font-size:13px;padding:7px 18px;border-radius:100px;
-  transition:.16s;box-shadow:0 1px 2px rgba(16,49,47,.05)}
-.collbar-btn:hover{background:var(--teal-l);border-color:var(--teal)}
-.collbar-btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-
 ol.rules,ul.rules{margin:6px 0 0;padding-left:20px}
 ol.rules li,ul.rules li{margin:0 0 8px;color:var(--ink-2)}
 ol.rules li::marker{color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:12px}
@@ -234,18 +212,20 @@ footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
 
 .hidden{display:none !important}
 
-@media (max-width:1180px){
+@media (max-width:1300px){
+  .wrap,.tabrow{padding:0 16px}
   table .col-p2{display:none}
 }
-@media (max-width:1000px){
+@media (max-width:1180px){
   table .col-p3{display:none}
+}
+@media (max-width:1000px){
+  table .col-p1{display:none}
 }
 @media (max-width:900px){
   .hero-main{grid-template-columns:1fr;gap:22px}
-  .wrap,.tabrow{padding:0 16px}
   .card{padding:14px 13px}
   .tw{margin:0 -13px;padding:0 13px}
-  table .col-p1{display:none}
 }
 @media (max-width:680px){
   th,td{padding:6px 7px;font-size:12px}
