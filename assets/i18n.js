@@ -64,7 +64,13 @@ window.I18N = {
     "calc.total": "预估运费合计",
     "calc.capped": "超出台阶·按最高档估算",
     "calc.minfloor": "已按最低计费重封底",
-    "calc.noRoute": "暂无可用线路报价"
+    "calc.noRoute": "暂无可用线路报价",
+    "calc.rule2x": "体积重<2×实重按实重",
+    "ver.label": "版本",
+    "chip.sourceVal": "邮满满云仓报价表",
+    "calc.ph.weight": "如 0.5",
+    "calc.ph.opt": "选填",
+    "calc.ph.decl": "如 200"
   },
   "en": {
     "site.title": "Yumanman Cloud Warehouse · Quote Center",
@@ -128,7 +134,13 @@ window.I18N = {
     "calc.total": "Estimated total shipping",
     "calc.capped": "Exceeds tiers · estimated at top tier",
     "calc.minfloor": "Floored to minimum chargeable weight",
-    "calc.noRoute": "No route quotes available"
+    "calc.noRoute": "No route quotes available",
+    "calc.rule2x": "vol. weight < 2× actual → actual",
+    "ver.label": "Ver",
+    "chip.sourceVal": "Yumanman quote folder",
+    "calc.ph.weight": "e.g. 0.5",
+    "calc.ph.opt": "Optional",
+    "calc.ph.decl": "e.g. 200"
   },
   "ko": {
     "site.title": "우만만 클라우드 창고 · 견적 조회센터",
@@ -192,8 +204,89 @@ window.I18N = {
     "calc.total": "예상 배송비 합계",
     "calc.capped": "구간 초과·최상위 구간으로 계산",
     "calc.minfloor": "최소 과금중량으로 하한 적용",
-    "calc.noRoute": "사용 가능한 노선 견적 없음"
+    "calc.noRoute": "사용 가능한 노선 견적 없음",
+    "calc.rule2x": "부피무게<2×실중량 시 실중량 적용",
+    "ver.label": "버전",
+    "chip.sourceVal": "우만만 견적 폴더",
+    "calc.ph.weight": "예: 0.5",
+    "calc.ph.opt": "선택입력",
+    "calc.ph.decl": "예: 200"
   }
+};
+
+/* 列标题翻译表（显示用，原中文表头仍用于内部识别逻辑）。window.HEADER_MAP[中文表头]={en,ko} */
+window.HEADER_MAP = {
+  "VAT税率": {"en":"VAT Rate","ko":"VAT 세율"},
+  "价格": {"en":"Price","ko":"가격"},
+  "价格_元_个": {"en":"Price (¥/pc)","ko":"가격(¥/개)"},
+  "保价服务费(RMB/票)": {"en":"Insurance Fee (RMB/shipment)","ko":"보호 서비스료(RMB/건)"},
+  "全程时效": {"en":"Total Transit Time","ko":"전체 소요시간"},
+  "内容": {"en":"Content","ko":"내용"},
+  "分区": {"en":"Zone","ko":"구역"},
+  "参考时效": {"en":"Est. Transit Time","ko":"예상 소요시간"},
+  "参考时效（工作日）": {"en":"Est. Transit Time (business days)","ko":"예상 소요시간(영업일)"},
+  "品目": {"en":"Item","ko":"품목"},
+  "品目_2": {"en":"Item","ko":"품목"},
+  "品类": {"en":"Category","ko":"카테고리"},
+  "品类_2": {"en":"Category","ko":"카테고리"},
+  "国家": {"en":"Country","ko":"국가"},
+  "国家/地区": {"en":"Country/Region","ko":"국가/지역"},
+  "处理费（RMB/票）": {"en":"Handling Fee (RMB/shipment)","ko":"취급수수료(RMB/건)"},
+  "备注": {"en":"Notes","ko":"비고"},
+  "备注说明": {"en":"Notes","ko":"비고"},
+  "对接代码": {"en":"Integration Code","ko":"연동 코드"},
+  "尺寸_cm": {"en":"Size (cm)","ko":"규격(cm)"},
+  "尺寸要求": {"en":"Size Requirement","ko":"규격 요건"},
+  "序号": {"en":"No.","ko":"번호"},
+  "挂号费(RMB/票)": {"en":"Registration Fee (RMB/shipment)","ko":"등기비(RMB/건)"},
+  "挂号费（RMB/票）": {"en":"Registration Fee (RMB/shipment)","ko":"등기비(RMB/건)"},
+  "收费项目": {"en":"Fee Item","ko":"요금 항목"},
+  "最低计费重(KG)": {"en":"Min. Chargeable Weight (KG)","ko":"최소 과금중량(KG)"},
+  "服务费": {"en":"Service Fee","ko":"서비스료"},
+  "派送附加费（RMB_item）": {"en":"Delivery Surcharge (RMB/item)","ko":"배송 추가요금(RMB/개)"},
+  "申报价值": {"en":"Declared Value","ko":"신고 가액"},
+  "签名服务费(RMB/票)": {"en":"Signature Fee (RMB/shipment)","ko":"서명 서비스료(RMB/건)"},
+  "类别": {"en":"Type","ko":"유형"},
+  "类别_2": {"en":"Type","ko":"유형"},
+  "类目": {"en":"Category","ko":"카테고리"},
+  "类目_2": {"en":"Category","ko":"카테고리"},
+  "终止邮编": {"en":"End ZIP","ko":"종료 우편번호"},
+  "计价依据": {"en":"Pricing Basis","ko":"요금 근거"},
+  "走货属性": {"en":"Cargo Attribute","ko":"화물 속성"},
+  "起始邮编": {"en":"Start ZIP","ko":"시작 우편번호"},
+  "运费(RMB/KG)": {"en":"Freight (RMB/KG)","ko":"운임(RMB/KG)"},
+  "运费（RMB/KG）": {"en":"Freight (RMB/KG)","ko":"운임(RMB/KG)"},
+  "运费（RMB/KG)": {"en":"Freight (RMB/KG)","ko":"운임(RMB/KG)"},
+  "返回目录": {"en":"Back to Index","ko":"목차로"},
+  "进位制(KG)": {"en":"Billing Increment (KG)","ko":"청구 단위(KG)"},
+  "重量": {"en":"Weight","ko":"중량"},
+  "重量(KG)": {"en":"Weight (KG)","ko":"중량(KG)"},
+  "重量段(KG)": {"en":"Weight Tier (KG)","ko":"중량 구간(KG)"},
+  "重量段（kg）": {"en":"Weight Tier (KG)","ko":"중량 구간(KG)"}
+};
+
+/* 工作表名称翻译表（显示用）。window.SHEET_MAP[中文表名]={en,ko} */
+window.SHEET_MAP = {
+  "云途挂号（化妆品）": {"en":"Yuntu Registered (Cosmetics)","ko":"윈투 등기(화장품)"},
+  "云途挂号（特惠带电）": {"en":"Yuntu Registered (Discount, Powered)","ko":"윈투 등기(할인·전자제품)"},
+  "云途挂号（特惠普货）": {"en":"Yuntu Registered (Discount, General)","ko":"윈투 등기(할인·일반화물)"},
+  "云途标快普货": {"en":"Yuntu Standard Express (General)","ko":"윈투 표준특송(일반화물)"},
+  "欧洲快线-MG": {"en":"Europe Express-MG","ko":"유럽 특송-MG"},
+  "欧洲快线-PF": {"en":"Europe Express-PF","ko":"유럽 특송-PF"},
+  "欧洲快线-TF": {"en":"Europe Express-TF","ko":"유럽 특송-TF"},
+  "欧洲快线普货": {"en":"Europe Express (General)","ko":"유럽 특송(일반화물)"},
+  "欧洲快线特货": {"en":"Europe Express (Special)","ko":"유럽 특송(특수화물)"},
+  "美国标准": {"en":"US Standard","ko":"미국 표준"},
+  "美国标准（直出尾端）": {"en":"US Standard (Direct Last-mile)","ko":"미국 표준(직출 말단)"},
+  "美国特快": {"en":"US Express","ko":"미국 특송"},
+  "云仓售后": {"en":"Cloud Warehouse After-sales","ko":"클라우드 창고 A/S"},
+  "云仓报价": {"en":"Cloud Warehouse Quote","ko":"클라우드 창고 견적"},
+  "耗材参考": {"en":"Packaging Supplies Reference","ko":"소모품 참고"},
+  "日本药事法涉及类目": {"en":"Japan Pharmaceutical Affairs Categories","ko":"일본 의약품법 관련 품목"},
+  "欧洲国家对应税率表": {"en":"Europe Country VAT Rate Table","ko":"유럽 국가 VAT 세율표"},
+  "申报价值注意事项": {"en":"Declared Value Notes","ko":"신고 가액 주의사항"},
+  "禁运品清单": {"en":"Prohibited Items List","ko":"금송품 목록"},
+  "英国偏远地区邮编": {"en":"UK Remote Area ZIP Codes","ko":"영국 오지 우편번호"}
 };
 
 window.COUNTRY_MAP = {
@@ -490,7 +583,7 @@ window.COUNTRY_MAP = {
     "ko": "요르단"
   },
   "捷克共和国": {
-    "en": "捷克共和国",
+    "en": "Czechia",
     "ko": "체코"
   },
   "日本": {

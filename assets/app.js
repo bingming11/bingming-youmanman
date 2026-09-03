@@ -39,7 +39,7 @@
   function setLang(lang) {
     if (lang !== "zh" && lang !== "en" && lang !== "ko") lang = "zh";
     LANG = lang;
-    try { localStorage.setItem("ym_lang", lang); } catch (e) {}
+    try { window.I18N_LANG = lang; localStorage.setItem("ym_lang", lang); } catch (e) {}
     applyStaticI18n();
     var lb = document.getElementById("langbar");
     if (lb) {
@@ -80,6 +80,24 @@
   function countryText(v) {
     if (window.COUNTRY_MAP && window.COUNTRY_MAP[v] && window.COUNTRY_MAP[v][LANG]) return window.COUNTRY_MAP[v][LANG];
     return v;
+  }
+  // 列标题 / 工作表名：仅翻译显示文本，原中文仍供内部识别逻辑使用
+  function headerText(h) {
+    if (!h) return h;
+    var m = (window.HEADER_MAP && window.HEADER_MAP[h]);
+    return (m && m[LANG]) ? m[LANG] : h;
+  }
+  function sheetText(n) {
+    if (!n) return n;
+    var m = (window.SHEET_MAP && window.SHEET_MAP[n]);
+    return (m && m[LANG]) ? m[LANG] : n;
+  }
+  // 分类页签：中文分类名 -> 当前语言标签（内部 state.cat 仍用中文原值）
+  function catText(cat) {
+    var KEYS = { "全部": "cat.all", "线路报价": "cat.route", "云仓服务": "cat.warehouse", "参考规则": "cat.rule" };
+    if (KEYS[cat]) return T(KEYS[cat]);
+    var m = (window.CAT_MAP && window.CAT_MAP[cat]);
+    return (m && m[LANG]) ? m[LANG] : cat;
   }
   var NOTE_KW = ["备注", "说明", "内容", "品目", "类目"];
   function isNoteHeader(h) {
@@ -170,17 +188,18 @@
 
     var b = $("#banner");
     b.innerHTML = "";
+    var zP = (LANG === "zh");
     if (STATUS.ok === false) {
       b.className = "banner err";
       b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>' +
         '<div><b>' + esc(T("banner.err")) + '</b> ' + esc(STATUS.error || "") +
-        (STATUS.fallbackVersion ? "（" + T("tag.rows") + " v" + STATUS.fallbackVersion + "）" : "") +
-        '。</div>';
+        (STATUS.fallbackVersion ? (zP ? "（" : " (") + T("tag.rows") + " v" + STATUS.fallbackVersion + (zP ? "）" : ")") : "") +
+        (zP ? "。" : ".") + '</div>';
     } else if (STATUS.errors && STATUS.errors.length) {
       b.className = "banner warn";
-      var names = STATUS.errors.map(function (e) { return e.file + (e.sheet ? " › " + e.sheet : ""); }).join("、");
+      var names = STATUS.errors.map(function (e) { return e.file + (e.sheet ? " › " + e.sheet : ""); }).join(zP ? "、" : ", ");
       b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>' +
-        '<div><b>' + esc(T("banner.warn")) + '</b>' + esc(names) + '。</div>';
+        '<div><b>' + esc(T("banner.warn")) + '</b>' + esc(names) + (zP ? "。" : ".") + '</div>';
     } else {
       b.className = "banner hidden";
     }
@@ -193,7 +212,7 @@
     row.innerHTML = "";
     categories().forEach(function (cat) {
       var n = sheetsInCat(cat).length;
-      var t = el("button", "tab", T("cat." + cat));
+      var t = el("button", "tab", catText(cat));
       t.setAttribute("role", "tab");
       t.setAttribute("aria-selected", cat === state.cat ? "true" : "false");
       if (n) { t.classList.add("has-hits"); var h = el("span", "hits", n); t.appendChild(h); }
@@ -218,7 +237,7 @@
     list.forEach(function (s) {
       var p = el("button", "pill");
       p.setAttribute("aria-pressed", s.name === state.sheet ? "true" : "false");
-      p.appendChild(el("span", null, s.name));
+      p.appendChild(el("span", null, sheetText(s.name)));
       var c = el("span", "cnt", (s.type === "table" ? s.rowCount : (s.blocks ? s.blocks.length : 0)));
       p.appendChild(c);
       p.addEventListener("click", function () {
@@ -367,13 +386,18 @@
   function renderTable(sheet) {
     var wrap = el("div", "card");
     var head = el("div", "sec-head");
-    head.appendChild(el("h2", null, sheet.name));
+    head.appendChild(el("h2", null, sheetText(sheet.name)));
     var meta = el("div", "meta");
     if (sheet.meta && sheet.meta.productCode) meta.appendChild(el("span", "tag a", T("tag.product") + " " + sheet.meta.productCode));
     if (sheet.meta && sheet.meta.effectiveDate) meta.appendChild(el("span", "tag", T("tag.effective") + " " + sheet.meta.effectiveDate));
     meta.appendChild(el("span", "tag g", (sheet.rowCount || 0) + " " + T("tag.rows")));
     if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? T("tag.lexiangExcel") : T("tag.lexiangDoc")));
-    if (sheet.sourceFile) meta.appendChild(el("span", "tag", T("tag.source") + " " + sheet.sourceFile));
+    if (sheet.sourceFile) {
+      var fname = String(sheet.sourceFile);
+      // 非中文模式下，中文文件名替换为通用表名，避免残留中文
+      if (LANG !== "zh" && /[\u4e00-\u9fff]/.test(fname)) fname = T("chip.sourceVal");
+      meta.appendChild(el("span", "tag", T("tag.source") + " " + fname));
+    }
     head.appendChild(meta);
     wrap.appendChild(head);
 
@@ -381,10 +405,10 @@
     if (fcols.length) {
       var filt = el("div", "filt");
       fcols.forEach(function (f) {
-        var shortH = f.header.replace(/\s*\(.*\)/, "");
+        var shortH = headerText(f.header).replace(/\s*[\(（][^\(）]*[\)）]/g, "");
         var lab = el("label", null, shortH);
         var sel = el("select");
-        sel.appendChild(new Option(T("cat.all") === "全部" ? "全部 · " + shortH : "All · " + shortH, ""));
+        sel.appendChild(new Option(T("cat.all") + " · " + shortH, ""));
         f.vals.slice().sort(function (a, b) { return a.localeCompare(b, "zh"); }).forEach(function (v) {
           sel.appendChild(new Option(v, v));
         });
@@ -417,14 +441,14 @@
     var thead = el("thead");
     var trh = el("tr");
     sheet.headers.forEach(function (h, ci) {
-      var th = el("th", null, h || "—");
+      var th = el("th", null, headerText(h) || "—");
       var role = colRole(sheet, ci);
       if (role !== "text") th.classList.add("num");
       th.classList.add("col-p" + colPriority(h));
       var ar = "";
       if (state.sort && state.sort.col === ci) ar = state.sort.dir === "asc" ? "▲" : "▼";
       var hint = (role === "cur" && CUR !== "CNY") ? ' <span class="conv">≈' + CUR + "</span>" : "";
-      th.innerHTML = esc(h || "—") + hint + '<span class="ar">' + ar + "</span>";
+      th.innerHTML = esc(headerText(h) || "—") + hint + '<span class="ar">' + ar + "</span>";
       th.addEventListener("click", function () {
         if (state.sort && state.sort.col === ci) state.sort.dir = state.sort.dir === "asc" ? "desc" : "asc";
         else state.sort = { col: ci, dir: "asc" };
@@ -542,10 +566,15 @@
     var wrap = el("div", "card");
     wrap.setAttribute("data-sheet-type", "text");
     var head = el("div", "sec-head");
-    head.appendChild(el("h2", null, sheet.name));
+    head.appendChild(el("h2", null, sheetText(sheet.name)));
     var meta = el("div", "meta");
     if (sheet.source === "lexiang") meta.appendChild(el("span", "tag b", sheet.sourceKind === "excel" ? T("tag.lexiangExcel") : T("tag.lexiangDoc")));
-    if (sheet.sourceFile) meta.appendChild(el("span", "tag", T("tag.source") + " " + sheet.sourceFile));
+    if (sheet.sourceFile) {
+      var fname = String(sheet.sourceFile);
+      // 非中文模式下，中文文件名替换为通用表名，避免残留中文
+      if (LANG !== "zh" && /[\u4e00-\u9fff]/.test(fname)) fname = T("chip.sourceVal");
+      meta.appendChild(el("span", "tag", T("tag.source") + " " + fname));
+    }
     head.appendChild(meta);
     wrap.appendChild(head);
     var body = el("div", "sheet-body");

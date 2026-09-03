@@ -22,6 +22,24 @@
     if (v == null) v = z[k];
     return v == null ? k : v;
   }
+  // 显示层翻译：渠道名（表名）/ 目的地（国家 + N区），value 仍用原始中文键
+  function chNameText(n) {
+    var m = (window.SHEET_MAP && window.SHEET_MAP[n]);
+    return (m && m[LANG]) ? m[LANG] : n;
+  }
+  function destText(d) {
+    if (!d) return d;
+    var mz = String(d).match(/^(.*?)\s*(\d+)\s*区$/);
+    if (mz) {
+      var base = mz[1];
+      var cm = (window.COUNTRY_MAP && window.COUNTRY_MAP[base]) || null;
+      var baseT = (cm && cm[LANG]) ? cm[LANG] : base;
+      var zoneT = (LANG === "zh") ? mz[2] + "区" : (LANG === "ko" ? mz[2] + "구역" : "Zone " + mz[2]);
+      return baseT + " " + zoneT;
+    }
+    var cm2 = (window.COUNTRY_MAP && window.COUNTRY_MAP[d]);
+    return (cm2 && cm2[LANG]) ? cm2[LANG] : d;
+  }
   function getCur() {
     try { var v = localStorage.getItem("ym_cur"); if (v) return v; } catch (e) {}
     return "CNY";
@@ -194,12 +212,12 @@
       selCh.appendChild(o);
       selCh.disabled = true;
       btn.disabled = true;
-      btn.title = "数据源中暂无线路报价表";
+      btn.title = T("calc.noRoute");
       return;
     }
     CHANNELS.forEach(function (c, i) {
       var o = document.createElement("option");
-      o.value = i; o.textContent = c.name;
+      o.value = i; o.textContent = chNameText(c.name);
       selCh.appendChild(o);
     });
     fillDests();
@@ -210,7 +228,7 @@
     if (!c) return;
     c.order.forEach(function (d) {
       var o = document.createElement("option");
-      o.value = d; o.textContent = d;
+      o.value = d; o.textContent = destText(d);
       selD.appendChild(o);
     });
   }
@@ -247,7 +265,7 @@
 
     var rows = "";
     rows += row(T("calc.realW"), fmt(weight) + " KG");
-    if (volW > 0) rows += row(T("calc.volW"), fmt(volW) + " KG <span class='sub'>(L×W×H÷" + dInfo.div + (dInfo.rule2x ? " · 2×规则" : "") + ")</span>");
+    if (volW > 0) rows += row(T("calc.volW"), fmt(volW) + " KG <span class='sub'>(L×W×H÷" + dInfo.div + (dInfo.rule2x ? " · " + T("calc.rule2x") : "") + ")</span>");
     else rows += row(T("calc.volW"), "— <span class='sub'>(未填尺寸)</span>");
     rows += row(T("calc.chargeW"), fmt(billableW) + " KG" + (tier.min != null && chargeW < tier.min ? " <span class='sub'>" + T("calc.minfloor") + "</span>" : ""));
     rows += row(T("calc.decl"), decl != null ? "¥ " + fmt(decl) : "—");
