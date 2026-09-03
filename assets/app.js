@@ -358,12 +358,30 @@
       var tr = el("tr");
       var maxNoteLen = 0, nonNoteLen = 0;
       sheet.headers.forEach(function (h, ci) {
-        var txt = String(r[ci] || "");
-        if (noteCis.indexOf(ci) >= 0) {
-          if (txt.length > maxNoteLen) maxNoteLen = txt.length;
-        } else if (txt.trim() !== "") {
-          nonNoteLen += txt.length;
-        }
+        var t = String(r[ci] || "");
+        if (noteCis.indexOf(ci) >= 0) { if (t.length > maxNoteLen) maxNoteLen = t.length; }
+        else if (t.trim() !== "") nonNoteLen += t.length;
+      });
+      // 通用说明行轨道：某单元格超长、其余列基本为空且无价格（覆盖"渠道使用说明"类政策段）
+      var gMax = 0, gCi = -1, gOthers = 0, gNonEmpty = 0, gPrice = false;
+      sheet.headers.forEach(function (h, ci) {
+        var t = String(r[ci] || "").trim();
+        if (!t) return;
+        gNonEmpty++;
+        var role = colRole(sheet, ci);
+        if (role === "cur" && t !== "/") gPrice = true;
+        if (t.length > gMax) { gMax = t.length; gCi = ci; }
+        else gOthers += t.length;
+      });
+      var noteCi = -1;
+      if (maxNoteLen > 60 && nonNoteLen <= 80) {
+        noteCis.forEach(function (ci) {
+          if (noteCi < 0 || String(r[ci] || "").length > String(r[noteCi] || "").length) noteCi = ci;
+        });
+      }
+      if (noteCi < 0 && !gPrice && gMax > 60 && gOthers <= 100 && gNonEmpty <= 3) noteCi = gCi;
+      var isNoteRow = noteCi >= 0;
+      sheet.headers.forEach(function (h, ci) {
         var role = colRole(sheet, ci);
         var v = r[ci];
         var td = el("td");
@@ -377,7 +395,7 @@
           td.innerHTML = nn != null ? fmtNum(nn) : highlight(v);
         } else {
           var disp = isCountryCol(h) ? countryText(v) : v;
-          if (isNoteHeader(h)) {
+          if (ci === noteCi) {
             td.className = "td-note";
             var nb = el("div", "note-body");
             nb.innerHTML = highlight(disp);
@@ -393,7 +411,7 @@
         }
         tr.appendChild(td);
       });
-      if (maxNoteLen > 150 && nonNoteLen <= 80) tr.classList.add("note-row");
+      if (isNoteRow) tr.classList.add("note-row");
       tb.appendChild(tr);
     });
     table.appendChild(tb); tw.appendChild(table); wrap.appendChild(tw);
