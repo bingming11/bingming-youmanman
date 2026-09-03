@@ -154,13 +154,14 @@ main{padding:8px 0 90px;min-height:55vh}
 /* ---------- TABLES ---------- */
 .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);
   padding:16px 18px;margin:0 0 16px;box-shadow:var(--shadow);overflow:hidden}
-.tw{overflow-x:auto;margin:0 -18px;padding:0 18px}
-table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px;table-layout:auto}
-th,td{border:1px solid var(--line-soft);padding:9px 11px;text-align:left;vertical-align:top;
-  word-break:keep-all;overflow-wrap:break-word;white-space:normal;line-height:1.55;
-  min-width:110px}
-td{max-width:420px}
-th{max-width:240px}
+.tw{overflow-x:auto;margin:0 -18px;padding:0 18px;scrollbar-width:none;-ms-overflow-style:none}
+.tw::-webkit-scrollbar{display:none}
+table{border-collapse:collapse;width:100%;font-size:13px;table-layout:auto}
+th,td{border:1px solid var(--line-soft);padding:7px 8px;text-align:left;vertical-align:top;
+  word-break:keep-all;overflow-wrap:break-word;white-space:normal;line-height:1.45;
+  min-width:auto}
+td{max-width:360px}
+th{max-width:200px}
 /* 长文本列（备注/说明/内容/品目等）：超长折叠，展开时铺满下方 */
 td.td-note{min-width:300px;max-width:460px;padding:0;vertical-align:top;
   color:var(--ink-2);font-size:13px;word-break:keep-all}
@@ -180,10 +181,14 @@ td.td-note .note-collbar-btn:focus-visible{outline:2px solid var(--teal);outline
 /* 说明行展开时跨列铺满整行，临时去掉 max-width 限制 */
 tr.note-row td.td-note{transition:max-width .3s ease}
 tr.note-row.open td.td-note{max-width:none}
+/* 说明行：单单元格跨列铺满整行，移除右侧零散内容列，内容不被截断 */
+td.td-note-full{max-width:none !important;min-width:0;width:100%}
+tr.note-row.open td.td-note-full{max-width:none}
 /* 数字/货币列保持紧凑不换行 */
-td.num,td.cur{min-width:70px;white-space:nowrap}
-thead th{background:var(--teal-d);color:#DFF0EE;font-weight:500;font-size:13px;border-color:#0A4C3C;
-  position:sticky;top:0;cursor:pointer;user-select:none;overflow-wrap:anywhere;word-break:break-word}
+td.num,td.cur{min-width:68px;white-space:nowrap}
+thead th{background:var(--teal-d);color:#DFF0EE;font-weight:500;font-size:12px;border-color:#0A4C3C;
+  position:sticky;top:0;cursor:pointer;user-select:none;overflow-wrap:anywhere;word-break:break-word;
+  hyphens:auto}
 thead th:hover{background:var(--teal)}
 thead th .ar{font-size:10px;opacity:.6;margin-left:4px}
 thead th.num{text-align:right}
@@ -229,11 +234,23 @@ footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
 
 .hidden{display:none !important}
 
+@media (max-width:1180px){
+  table .col-p2{display:none}
+}
+@media (max-width:1000px){
+  table .col-p3{display:none}
+}
 @media (max-width:900px){
   .hero-main{grid-template-columns:1fr;gap:22px}
   .wrap,.tabrow{padding:0 16px}
   .card{padding:14px 13px}
   .tw{margin:0 -13px;padding:0 13px}
+  table .col-p1{display:none}
+}
+@media (max-width:680px){
+  th,td{padding:6px 7px;font-size:12px}
+  td.num,td.cur{min-width:58px}
+  thead th{font-size:11px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 

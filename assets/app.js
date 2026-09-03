@@ -87,6 +87,20 @@
     for (var i = 0; i < NOTE_KW.length; i++) if (h.indexOf(NOTE_KW[i]) >= 0) return true;
     return false;
   }
+  // 列优先级：响应式隐藏非关键列，避免表格过宽出现横向滚动
+  function colPriority(h) {
+    if (!h) return 1;
+    // p0 关键列：国家/地区、渠道、重量、运费、挂号/处理费
+    if (/国家|地区|目的地|国家\/地区|渠道|产品名称|对接代码/.test(h)) return 0;
+    if (/重量|运费|挂号|处理费/.test(h)) return 0;
+    // p1 次要列：时效、分区、最低计费、保价、尺寸、走货属性
+    if (/参考时效|分区|最低计费|保价|签名|赔偿|尺寸|走货属性|重量段/.test(h)) return 1;
+    // p2 详情列：进位制、体积、申报、附加费、税率、服务费、价格、邮编等
+    if (/进位制|体积|申报|附加费|税率|服务费|价格|起始邮编|终止邮编|计价依据/.test(h)) return 2;
+    // p3 长文本/备注列
+    if (/备注|说明|内容|品目|类目|备注说明/.test(h)) return 3;
+    return 1;
+  }
 
   // ===================== 现有工具 =====================
   var CURRENCY_KW = ["RMB", "元", "价格", "运费", "挂号", "服务费", "附加费",
@@ -270,7 +284,7 @@
         if (!t) return;
         gNonEmpty++;
         var role = colRole(sheet, ci);
-        if (role === "cur" && t !== "/") gPrice = true;
+        if (role === "cur" && toNum(t) != null) gPrice = true;
         if (t.length > gMax) { gMax = t.length; gCi = ci; }
         else gOthers += t.length;
       });
@@ -280,7 +294,10 @@
           if (noteCi < 0 || String(r[ci] || "").length > String(r[noteCi] || "").length) noteCi = ci;
         });
       }
-      if (noteCi < 0 && !gPrice && gMax > 60 && gOthers <= 100 && gNonEmpty <= 3) noteCi = gCi;
+      if (noteCi < 0 && !gPrice) {
+        if (gMax > 25 && gOthers <= 120 && gNonEmpty <= 4) noteCi = gCi;
+        else if (gNonEmpty <= 2 && gCi >= 0 && toNum(String(r[gCi] || "")) == null) noteCi = gCi;
+      }
       if (noteCi >= 0) out.push({ row: ri, ci: noteCi, text: String(r[noteCi] || "").trim() });
     });
     return out;
@@ -417,6 +434,7 @@
       var th = el("th", null, h || "—");
       var role = colRole(sheet, ci);
       if (role !== "text") th.classList.add("num");
+      th.classList.add("col-p" + colPriority(h));
       var ar = "";
       if (state.sort && state.sort.col === ci) ar = state.sort.dir === "asc" ? "▲" : "▼";
       var hint = (role === "cur" && CUR !== "CNY") ? ' <span class="conv">≈' + CUR + "</span>" : "";
@@ -448,7 +466,7 @@
         if (!t) return;
         gNonEmpty++;
         var role = colRole(sheet, ci);
-        if (role === "cur" && t !== "/") gPrice = true;
+        if (role === "cur" && toNum(t) != null) gPrice = true;
         if (t.length > gMax) { gMax = t.length; gCi = ci; }
         else gOthers += t.length;
       });
@@ -458,8 +476,39 @@
           if (noteCi < 0 || String(r[ci] || "").length > String(r[noteCi] || "").length) noteCi = ci;
         });
       }
-      if (noteCi < 0 && !gPrice && gMax > 60 && gOthers <= 100 && gNonEmpty <= 3) noteCi = gCi;
+      if (noteCi < 0 && !gPrice) {
+        if (gMax > 60 && gOthers <= 100 && gNonEmpty <= 3) noteCi = gCi;
+        else if (gNonEmpty <= 2 && gCi >= 0 && toNum(String(r[gCi] || "")) == null) noteCi = gCi;
+      }
       var isNoteRow = noteCi >= 0;
+      if (isNoteRow) {
+        // 说明行：仅保留说明内容列，横向跨列铺满整行，移除其余零散内容列
+        var ntd = el("td");
+        ntd.className = "td-note td-note-full";
+        ntd.setAttribute("colspan", String(sheet.headers.length));
+        // 把整行所有非价格文本拼合（含货币/数字列里误填的纯文本标注），铺满展示
+        var parts = [];
+        sheet.headers.forEach(function (h, ci) {
+          var t = String(r[ci] || "").trim();
+          if (!t) return;
+          var role = colRole(sheet, ci);
+          if (role === "cur" && toNum(t) != null) return; // 真实价格不纳入
+          if (ci === noteCi) parts.unshift(t);
+          else parts.push(t);
+        });
+        var nnb = el("div", "note-body");
+        nnb.innerHTML = parts.map(highlight).join("<br>");
+        var nbar = el("div", "note-collbar");
+        var nbtn = el("button", "note-collbar-btn");
+        nbtn.type = "button";
+        nbar.appendChild(nbtn);
+        ntd.appendChild(nnb);
+        ntd.appendChild(nbar);
+        tr.appendChild(ntd);
+        tr.classList.add("note-row");
+        tb.appendChild(tr);
+        return;
+      }
       sheet.headers.forEach(function (h, ci) {
         var role = colRole(sheet, ci);
         var v = r[ci];
@@ -488,6 +537,7 @@
             td.innerHTML = highlight(disp);
           }
         }
+        td.classList.add("col-p" + colPriority(h));
         tr.appendChild(td);
       });
       if (isNoteRow) tr.classList.add("note-row");
@@ -586,10 +636,6 @@
           bar.classList.remove("hidden");
           if (isNoteRow) {
             tr.classList.remove("open");
-            if (td.colSpan > 1) {
-              td.removeAttribute("colspan");
-              siblings.forEach(function (s) { s.classList.remove("hidden"); });
-            }
           }
         } else {
           nb.classList.remove("collapsed");
@@ -598,8 +644,6 @@
           bar.classList.remove("hidden");
           if (isNoteRow) {
             tr.classList.add("open");
-            td.colSpan = getTotalCols();
-            siblings.forEach(function (s) { s.classList.add("hidden"); });
           }
         }
       }
