@@ -5,6 +5,7 @@
  *   B. 欧洲/美国系列：国家 | 重量段（kg） | 运费（RMB/KG） | 挂号费/处理费（RMB/票）
  * 体积系数按线路/目的地不同（÷5000 / ÷6000 / ÷8000，部分目的地有"体积重<2×实重按实重"规则）；
  * 计费重 = max(实重, 体积重) 并取最低计费重封底。除数与规则均从报价表备注自动解析。
+ * 多分区目的地（如澳大利亚 1/2/3/4 区）按"区"拆分到下拉项，各取各区费率。
  */
 (function () {
   "use strict";
@@ -93,9 +94,15 @@
     });
     return { defaultDiv: defaultDiv, overrides: overrides };
   }
+  // 去掉目的地名末尾的" N区"后缀，得到基础国名（用于体积系数匹配）
+  function baseDest(dest) {
+    return (dest || "").replace(/\s*\d+区$/, "").trim();
+  }
   // 取某目的地/子产品的体积系数与特殊规则
   function divisorFor(channel, dest) {
     var d = channel.div;
+    var bd = baseDest(dest);
+    if (d && d.overrides[bd]) return d.overrides[bd];
     if (d && d.overrides[dest]) return d.overrides[dest];
     // 美国部分子产品（DP价/特货S/990特货S/DP价BZ）按 ÷6000
     if (/DP价|特货S|990特货S|DP价BZ/.test(dest || "")) return { div: 6000, rule2x: false };
@@ -109,6 +116,7 @@
       if (s.category !== "线路报价" || s.type !== "table") return;
       var H = s.headers || [];
       var destCol = 0;
+      var zoneCol = findCol(H, ["分区"]); // 部分线路按 1/2/3/4 区分别定价（如澳大利亚）
       var tierCol = findCol(H, ["重量(KG)", "重量段"]);
       var rateCol = findCol(H, ["运费"]);
       if (tierCol < 0 || rateCol < 0) return; // 非标准费率表，跳过
@@ -123,6 +131,9 @@
         var d = (r[destCol] != null && String(r[destCol]).trim() !== "") ? String(r[destCol]).trim() : lastDest;
         if (d === "") return;
         lastDest = d;
+        // 有分区列时，把"区"拼进目的地名，避免多分区国家被压成单一条目
+        var zone = (zoneCol >= 0 && r[zoneCol] != null) ? String(r[zoneCol]).trim() : "";
+        var dKey = d + (zone ? " " + zone : "");
         var tier = parseTier(r[tierCol]);
         if (!tier) return;
         var rate = toNum(r[rateCol]);
@@ -131,8 +142,8 @@
         var min = minCol >= 0 ? toNum(r[minCol]) : null;
         var time = (timeCol >= 0 && r[timeCol] != null && String(r[timeCol]).trim() !== "") ? String(r[timeCol]).trim() : lastTime;
         lastTime = time;
-        if (order.indexOf(d) < 0) { order.push(d); dests[d] = []; }
-        dests[d].push({ lo: tier.lo, hi: tier.hi, rate: rate, fee: fee, min: min, time: time });
+        if (order.indexOf(dKey) < 0) { order.push(dKey); dests[dKey] = []; }
+        dests[dKey].push({ lo: tier.lo, hi: tier.hi, rate: rate, fee: fee, min: min, time: time });
       });
       if (order.length === 0) return;
       // 每个目的地的费率档按上限升序
