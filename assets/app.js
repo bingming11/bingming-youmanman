@@ -79,7 +79,7 @@
   function isCountryCol(h) { return COUNTRY_COLS.indexOf(h) >= 0; }
   function countryText(v) {
     if (window.COUNTRY_MAP && window.COUNTRY_MAP[v] && window.COUNTRY_MAP[v][LANG]) return window.COUNTRY_MAP[v][LANG];
-    return v;
+    return cellText(v); // fallback for non-country values in country columns
   }
   // 表格单元格内容翻译：仅翻译显示文本，原中文仍供内部筛选/搜索/识别使用
   function cellText(v) {
