@@ -81,6 +81,20 @@
     if (window.COUNTRY_MAP && window.COUNTRY_MAP[v] && window.COUNTRY_MAP[v][LANG]) return window.COUNTRY_MAP[v][LANG];
     return v;
   }
+  // 表格单元格内容翻译：仅翻译显示文本，原中文仍供内部筛选/搜索/识别使用
+  function cellText(v) {
+    if (v == null) return v;
+    var s = String(v);
+    if (LANG === "zh") return s;
+    var m = (window.CONTENT_MAP && window.CONTENT_MAP[s]);
+    if (m && m[LANG]) return m[LANG];
+    // 模式规则：时效 / 分区
+    var mm;
+    if ((mm = s.match(/^(\d+)-(\d+)工作日$/))) return LANG === "en" ? mm[1] + "-" + mm[2] + " working days" : mm[1] + "-" + mm[2] + " 영업일";
+    if ((mm = s.match(/^(\d+)个工作日$/))) return LANG === "en" ? mm[1] + " working days" : mm[1] + " 영업일";
+    if ((mm = s.match(/^(\d+)区$/))) return LANG === "en" ? "Zone " + mm[1] : mm[1] + "구역";
+    return s;
+  }
   // 列标题 / 工作表名：仅翻译显示文本，原中文仍供内部识别逻辑使用
   function headerText(h) {
     if (!h) return h;
@@ -410,7 +424,7 @@
         var sel = el("select");
         sel.appendChild(new Option(T("cat.all") + " · " + shortH, ""));
         f.vals.slice().sort(function (a, b) { return a.localeCompare(b, "zh"); }).forEach(function (v) {
-          sel.appendChild(new Option(v, v));
+          sel.appendChild(new Option(cellText(v), v));
         });
         if (state.filters[f.ci]) sel.value = state.filters[f.ci];
         sel.addEventListener("change", function () {
@@ -507,13 +521,8 @@
           else parts.push(t);
         });
         var nnb = el("div", "note-body");
-        nnb.innerHTML = parts.map(highlight).join("<br>");
-        var nbar = el("div", "note-collbar");
-        var nbtn = el("button", "note-collbar-btn");
-        nbtn.type = "button";
-        nbar.appendChild(nbtn);
+        nnb.innerHTML = parts.map(function (p) { return highlight(cellText(p)); }).join("<br>");
         ntd.appendChild(nnb);
-        ntd.appendChild(nbar);
         tr.appendChild(ntd);
         tr.classList.add("note-row");
         tb.appendChild(tr);
@@ -532,17 +541,12 @@
           var nn = toNum(v);
           td.innerHTML = nn != null ? fmtNum(nn) : highlight(v);
         } else {
-          var disp = isCountryCol(h) ? countryText(v) : v;
+          var disp = isCountryCol(h) ? countryText(v) : cellText(v);
           if (ci === noteCi) {
             td.className = "td-note";
             var nb = el("div", "note-body");
             nb.innerHTML = highlight(disp);
-            var bar = el("div", "note-collbar");
-            var nbtn = el("button", "note-collbar-btn");
-            nbtn.type = "button";
-            bar.appendChild(nbtn);
             td.appendChild(nb);
-            td.appendChild(bar);
           } else {
             td.innerHTML = highlight(disp);
           }
@@ -580,58 +584,11 @@
     var body = el("div", "sheet-body");
     body.setAttribute("data-k", "text");
     (sheet.blocks || []).forEach(function (blk) {
-      var p = el("p", "plain", blk);
+      var p = el("p", "plain", cellText(blk));
       body.appendChild(p);
     });
     wrap.appendChild(body);
     return wrap;
-  }
-
-  // ===================== 表格超长备注：折叠 + 展开铺满 =====================
-  // 超长的备注单元格默认折叠（限高 + 渐隐 + 展开按钮），点击后展开铺满下方。
-  // 对"说明行"（非备注列全空、备注列很长）额外做整行跨列展开：展开时 colSpan 铺满整行，隐藏同排其他 td。
-  var NOTE_COLLAPSE_MAX = 90; // px，内容超出此高度则初始折叠（约 4.4 行）
-  function wireNoteCollapsibles() {
-    var notes = document.querySelectorAll("#sheet-area td.td-note");
-    notes.forEach(function (td) {
-      var nb = td.querySelector(".note-body");
-      var btn = td.querySelector(".note-collbar-btn");
-      var bar = td.querySelector(".note-collbar");
-      if (!nb || !btn || !bar) return;
-      var tr = td.parentNode;
-      var isNoteRow = tr && tr.classList.contains("note-row");
-      var siblings = isNoteRow ? [].slice.call(tr.children).filter(function (c) { return c !== td; }) : [];
-      function getTotalCols() {
-        var thead = tr && tr.parentNode && tr.parentNode.parentNode && tr.parentNode.parentNode.querySelector("thead tr");
-        return thead ? thead.children.length : (siblings.length + 1);
-      }
-      function setCollapsed(c) {
-        if (c) {
-          nb.classList.add("collapsed");
-          btn.innerHTML = T("sheet.expand");
-          btn.setAttribute("aria-expanded", "false");
-          bar.classList.remove("hidden");
-          if (isNoteRow) {
-            tr.classList.remove("open");
-          }
-        } else {
-          nb.classList.remove("collapsed");
-          btn.innerHTML = T("sheet.collapse");
-          btn.setAttribute("aria-expanded", "true");
-          bar.classList.remove("hidden");
-          if (isNoteRow) {
-            tr.classList.add("open");
-          }
-        }
-      }
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        setCollapsed(!nb.classList.contains("collapsed"));
-      });
-      // 初始：仅超长才折叠并显示按钮；短备注直接铺满，隐藏按钮条
-      if (nb.scrollHeight > NOTE_COLLAPSE_MAX) setCollapsed(true);
-      else { nb.classList.remove("collapsed"); bar.classList.add("hidden"); }
-    });
   }
 
   // ===================== 渲染当前 sheet =====================
@@ -649,7 +606,7 @@
       COMMON_CHANNEL_NOTICES.forEach(function (txt) {
         var p = el("p", "channel-notice-item");
         p.style.whiteSpace = "pre-line";
-        p.textContent = txt;
+        p.textContent = cellText(txt);
         body.appendChild(p);
       });
       box.appendChild(body);
@@ -657,7 +614,6 @@
     }
     if (s.type === "text") main.appendChild(renderText(s));
     else main.appendChild(renderTable(s));
-    wireNoteCollapsibles();
   }
 
   // ===================== 工具栏绑定 =====================
